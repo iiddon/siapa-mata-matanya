@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A2023">
+<meta name="description" content="Game tebak mata-mata untuk nongkrong. Satu HP, digilir.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mata-mata">
+<title>Siapa Mata-matanya?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Shrikhand&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Tata letak: satu kolom selebar HP. Meja kartu oval dengan kursi melingkar jadi pusat permainan,
+     kartu rahasia jadi satu-satunya elemen yang mencolok. Satu tema gelap supaya layar tidak silau ke tetangga. */
+  --floor:#0A2023;
+  --felt:#11474A;
+  --felt-hi:#1E6C67;
+  --rim:#8A5530;
+  --paper:#FFF3D9;
+  --ink:#0A2023;
+  --marigold:#FFB727;
+  --marigold-deep:#B47600;
+  --tomato:#EE4B3E;
+  --tomato-deep:#A52A20;
+  --mint:#8EE3B0;
+  --soft:rgba(255,243,217,.68);
+  --line:rgba(255,243,217,.15);
+  --field:rgba(255,243,217,.085);
+  --display:"Shrikhand","Cooper Black","Georgia",serif;
+  --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  background:var(--floor) radial-gradient(110% 420px at 50% -40px,#17494B 0%,rgba(23,73,75,0) 72%) no-repeat;
+  color:var(--paper);font:400 16px/1.5 var(--body);
+  touch-action:manipulation;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,p,ol,ul,figure{margin:0}
+:focus-visible{outline:3px solid var(--marigold);outline-offset:2px}
+
+.app{max-width:460px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-left)) env(safe-area-inset-bottom) max(16px,env(safe-area-inset-right));min-height:100%;display:flex;flex-direction:column}
+
+/* ---------- bar ---------- */
+.bar{display:flex;align-items:center;gap:8px;min-height:44px}
+.bar.tall{align-items:flex-start}
+.brand{font:400 19px/1 var(--display);margin-right:auto;white-space:nowrap}
+.bar-btns{display:flex;gap:8px;margin-left:auto}
+.icon{width:40px;height:40px;border-radius:50%;border:0;background:var(--field);display:grid;place-items:center;padding:0}
+.icon svg{width:20px;height:20px}
+
+/* ---------- buttons ---------- */
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:16px 18px;background:var(--marigold);color:var(--ink);
+  font:700 17px/1.15 var(--body);box-shadow:0 4px 0 var(--marigold-deep);transition:transform .06s,box-shadow .06s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--marigold-deep)}
+.btn:disabled{background:rgba(255,243,217,.13);color:var(--soft);box-shadow:none;cursor:default;transform:none}
+.btn.tomato{background:var(--tomato);color:#fff;box-shadow:0 4px 0 var(--tomato-deep)}
+.btn.tomato:active{box-shadow:0 1px 0 var(--tomato-deep)}
+.btn.quiet{background:transparent;color:var(--paper);box-shadow:inset 0 0 0 1.5px rgba(255,243,217,.3)}
+.btn.quiet:active{transform:none;background:var(--field)}
+.link{background:none;border:0;color:var(--soft);font:600 14px/1.2 var(--body);text-decoration:underline;text-underline-offset:3px;padding:10px 8px}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+/* ---------- chip (koin pemain) ---------- */
+.chip{--c:var(--marigold);--s:34px;flex:none;width:var(--s);height:var(--s);border-radius:50%;background:var(--c);color:var(--ink);
+  display:grid;place-items:center;font:800 calc(var(--s)*.42)/1 var(--body);border:calc(var(--s)*.085) dashed rgba(10,32,35,.42)}
+.chip.big{--s:46px}
+
+/* ---------- setup ---------- */
+.fan{position:relative;width:190px;height:110px;margin-right:auto}
+.fan i{position:absolute;left:66px;bottom:22px;width:58px;height:82px;border-radius:8px;background:var(--paper);color:var(--ink);
+  display:grid;place-items:start center;padding-top:14px;font:400 15px/1 var(--display);font-style:normal;transform-origin:50% 150%;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.fan i:nth-child(1){transform:rotate(-30deg)}
+.fan i:nth-child(3){transform:rotate(30deg);background:var(--tomato);color:var(--paper)}
+.title{font:400 clamp(34px,10.6vw,48px)/1.02 var(--display)}
+.nb{white-space:nowrap}
+.hero{padding:8px 0 22px;display:flex;flex-direction:column;gap:10px}
+.lede{color:var(--soft);max-width:32ch}
+.sec{padding:20px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.sec-head,.row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+h2{font:800 18px/1.2 var(--body)}
+.row b{display:block;font-weight:700}
+.note{color:var(--soft);font-size:14px;line-height:1.45}
+.stepper{display:flex;align-items:center;gap:2px;background:var(--field);border-radius:999px;padding:4px;flex:none}
+.stepper button{width:38px;height:38px;border-radius:50%;border:0;background:var(--paper);color:var(--ink);font:800 20px/1 var(--body);padding:0}
+.stepper button:disabled{background:rgba(255,243,217,.14);color:var(--soft);cursor:default}
+.stepper output{min-width:38px;text-align:center;font:800 20px/1 var(--body);font-variant-numeric:tabular-nums}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.name{display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:6px 10px 6px 6px;min-width:0}
+.name:focus-within{outline:2px solid var(--marigold)}
+.name input{flex:1;min-width:0;width:100%;background:none;border:0;outline:0;font-weight:600;font-size:16px;padding:5px 0}
+.name input::placeholder,.field::placeholder{color:rgba(255,243,217,.45);font-weight:500}
+.switch{flex:none;width:54px;height:32px;border-radius:999px;border:0;background:rgba(255,243,217,.2);position:relative;padding:0;transition:background .15s}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--paper);transition:transform .15s}
+.switch[aria-checked="true"]{background:var(--marigold)}
+.switch[aria-checked="true"]::after{transform:translateX(22px);background:var(--ink)}
+.switch:disabled{opacity:.4;cursor:default}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choice{border:0;border-radius:999px;padding:10px 14px;background:var(--field);font:600 15px/1 var(--body)}
+.choice[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
+.field{width:100%;min-width:0;background:var(--field);border:0;border-radius:12px;padding:13px 14px;font-weight:600;font-size:16px}
+.field:focus{outline:2px solid var(--marigold)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dock{position:sticky;bottom:0;margin:auto -16px 0;padding:22px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(rgba(10,32,35,0),var(--floor) 30%);display:flex;flex-direction:column;gap:10px}
+.sum{font-size:14px;color:var(--soft);text-align:center}
+.err{font-size:14px;font-weight:600;color:#FFB4AB;text-align:center}
+
+/* ---------- kartu ---------- */
+.card{--w:min(68vw,264px,42vh);--u:calc(var(--w) / 100);position:relative;width:var(--w);height:calc(var(--w) * 1.4);flex:none}
+.card[data-hold]{cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border-radius:16px}
+.card-inner{position:absolute;inset:0}
+.card-back{transform:perspective(900px) rotateY(0deg);transition:transform .17s ease-out .17s}
+.card-front{transform:perspective(900px) rotateY(-90deg);visibility:hidden;transition:transform .17s ease-in,visibility 0s linear .17s}
+.card.is-open .card-back{transform:perspective(900px) rotateY(90deg);visibility:hidden;transition:transform .17s ease-in,visibility 0s linear .17s}
+.card.is-open .card-front{transform:perspective(900px) rotateY(0deg);visibility:visible;transition:transform .17s ease-out .17s,visibility 0s linear .17s}
+.card-face{position:absolute;inset:0;border-radius:calc(var(--u)*6);overflow:hidden;box-shadow:0 14px 30px rgba(0,0,0,.42)}
+.card-back{color:var(--paper);--iris:var(--ink);background-color:var(--tomato);display:grid;place-items:center;
+  background-image:repeating-linear-gradient(45deg,rgba(255,243,217,.17) 0 calc(var(--u)*1.2),transparent calc(var(--u)*1.2) calc(var(--u)*6)),repeating-linear-gradient(-45deg,rgba(255,243,217,.17) 0 calc(var(--u)*1.2),transparent calc(var(--u)*1.2) calc(var(--u)*6))}
+.card-back::before{content:"";position:absolute;inset:calc(var(--u)*4.5);border:calc(var(--u)*1) solid var(--paper);border-radius:calc(var(--u)*3.5);opacity:.92}
+.emblem{position:relative;width:calc(var(--u)*46);height:calc(var(--u)*46);border-radius:50%;background:var(--tomato);border:calc(var(--u)*1) solid var(--paper);display:grid;place-items:center}
+.emblem svg{width:calc(var(--u)*30)}
+.card-front{--face:var(--paper);background:var(--face);color:var(--ink);display:grid;place-items:center;padding:calc(var(--u)*9)}
+.card-front.f-mata{--face:var(--tomato);color:var(--paper)}
+.card-front.f-warga{--face:var(--mint)}
+.card-front.f-white{--face:#fff}
+.iris{fill:var(--iris,var(--face))}
+.idx{position:absolute;display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1.4);font:400 calc(var(--u)*8)/1 var(--display)}
+.idx svg{width:calc(var(--u)*7.5)}
+.idx.tl{top:calc(var(--u)*5);left:calc(var(--u)*5.5)}
+.idx.br{bottom:calc(var(--u)*5);right:calc(var(--u)*5.5);transform:rotate(180deg)}
+.card-body{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*4.5);text-align:center;max-width:100%}
+.card-cap{font:600 calc(var(--u)*5.3)/1.35 var(--body);opacity:.74}
+.card-word{font:400 calc(var(--u)*15.5)/1.03 var(--display);overflow-wrap:anywhere}
+.card-word.xl{font-size:calc(var(--u)*24)}
+.card-word.lg{font-size:calc(var(--u)*19)}
+.card-word.sm{font-size:calc(var(--u)*12.5)}
+.card-word.xs{font-size:calc(var(--u)*10.5)}
+.card.mini .card-cap{font-size:calc(var(--u)*8)}
+.card.mini .card-face{box-shadow:0 8px 18px rgba(0,0,0,.4)}
+
+/* ---------- bagi kartu ---------- */
+.deal{flex:1;display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0 20px;text-align:center}
+.dots{display:flex;gap:7px;align-items:center;min-height:14px}
+.dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,243,217,.2)}
+.dots i.done{background:var(--mint)}
+.dots i.now{background:var(--marigold);transform:scale(1.4)}
+.pass{color:var(--soft);font-size:15px;margin-top:4px}
+.who{display:flex;align-items:center;justify-content:center;gap:10px}
+.who h2{font:400 32px/1.05 var(--display);overflow-wrap:anywhere}
+.deal .card{animation:dealIn .32s cubic-bezier(.2,.8,.3,1)}
+.hint{color:var(--soft);font-size:14px;line-height:1.45}
+.deal .btn{margin-top:auto}
+
+/* ---------- meja ---------- */
+.phases{list-style:none;display:flex;gap:6px;margin:8px 0 0;padding:0;counter-reset:ph}
+.phases li{flex:1;counter-increment:ph;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 6px;border-radius:999px;background:var(--field);color:var(--soft);font:600 14px/1 var(--body)}
+.phases li::before{content:counter(ph);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:rgba(255,243,217,.14);font-size:12px;font-weight:800}
+.phases li.on{background:var(--paper);color:var(--ink)}
+.phases li.on::before{background:var(--ink);color:var(--paper)}
+.phases li.past{color:var(--mint)}
+.table-wrap{--s:52px;position:relative;width:min(100%,400px,50vh);aspect-ratio:10/11;margin:16px auto 30px}
+.table-wrap.n-mid{--s:46px}
+.table-wrap.n-big{--s:40px}
+.table{position:absolute;inset:12% 13%;border-radius:50%;border:10px solid var(--rim);
+  background:radial-gradient(ellipse at 50% 36%,var(--felt-hi),var(--felt) 72%);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.28),inset 0 12px 30px rgba(0,0,0,.35),0 18px 40px rgba(0,0,0,.45);display:grid;place-items:center}
+.center{width:80%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+.c-small{font:600 13px/1.35 var(--body);color:var(--soft)}
+.c-big{font:400 clamp(24px,7.6vw,30px)/1.05 var(--display);overflow-wrap:anywhere}
+.c-big.long{font-size:22px}
+.c-time{font:400 46px/1 var(--display);font-variant-numeric:tabular-nums}
+.c-time.low{color:var(--marigold)}
+.seat{position:absolute;transform:translate(-50%,calc(var(--s) / -2));width:76px;background:none;border:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--paper)}
+.seat:disabled{cursor:default}
+.seat .chip{box-shadow:0 4px 0 rgba(0,0,0,.4);transition:transform .2s}
+.seat-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 12px/1.2 var(--body);background:rgba(10,32,35,.8);padding:2px 7px;border-radius:999px}
+.seat.turn .chip{transform:scale(1.14);outline:3px solid var(--marigold);outline-offset:3px;animation:pulse 1.3s ease-in-out infinite}
+.seat.sel .chip{transform:scale(1.14);outline:3px solid var(--tomato);outline-offset:3px}
+.seat.out .chip{background:#2B4447;color:rgba(255,243,217,.5);border-color:rgba(255,243,217,.16);box-shadow:none}
+.seat.out .seat-name{display:none}
+.tag{font:700 12px/1 var(--body);padding:5px 8px;border-radius:999px;white-space:nowrap;flex:none}
+.tag.warga{background:#1F4F45;color:var(--mint)}
+.tag.mata{background:#5A2420;color:#FFA59C}
+.tag.white{background:#3F5557;color:#fff}
+.seat .tag{font-size:10.5px;padding:3px 6px}
+.status{font-size:14px;color:var(--soft);text-align:center}
+.actions{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-bottom:10px}
+.links{display:flex;justify-content:center;flex-wrap:wrap;gap:2px 10px}
+
+/* ---------- lapisan ---------- */
+.layer{position:fixed;inset:0;z-index:20;background:rgba(4,16,18,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px 16px;text-align:center;overflow:auto;animation:fade .18s ease-out}
+.layer.still{animation:none}
+.layer.bottom{justify-content:flex-end;padding:0}
+.sheet{width:100%;max-width:460px;max-height:88%;overflow:auto;background:#123538;border-radius:22px 22px 0 0;padding:22px 16px 20px;text-align:left;display:flex;flex-direction:column;gap:14px;animation:rise .22s ease-out}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sheet h2{font-size:20px}
+.steps{padding-left:22px;display:flex;flex-direction:column;gap:9px;line-height:1.45}
+.steps li::marker{font-weight:800;color:var(--marigold)}
+.picks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick{display:flex;align-items:center;gap:8px;border:0;border-radius:12px;background:var(--field);padding:8px 10px 8px 8px;font-weight:700;text-align:left;min-width:0}
+.pick span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer .card{--w:min(62vw,236px,38vh)}
+.reveal:not(.shown) .card{animation:wobble .26s ease-in-out infinite}
+.foot{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:12px;min-height:118px}
+.verdict{font-weight:600;line-height:1.4}
+.guess{display:flex;gap:8px;width:100%}
+.guess .btn{width:auto;flex:none;padding:13px 18px}
+.count{font:400 clamp(72px,30vw,150px)/1 var(--display);color:var(--marigold);animation:pop .5s cubic-bezier(.2,.9,.3,1.2)}
+.scores{list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
+.scores li{display:grid;grid-template-columns:22px 1fr auto;gap:4px 8px;align-items:center}
+.scores .rank{color:var(--soft);font-weight:700;font-variant-numeric:tabular-nums}
+.scores .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scores .pt{font-weight:800;font-variant-numeric:tabular-nums}
+.scores .track{grid-column:2/4;height:6px;border-radius:99px;background:var(--field);overflow:hidden}
+.scores .track i{display:block;height:100%;border-radius:99px;background:var(--marigold)}
+.pens{list-style:none;padding:0;display:flex;flex-direction:column;gap:14px}
+.pen-who{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pen-who b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pen-who .link{padding:6px 4px}
+.pen{background:var(--paper);color:var(--ink);border-radius:14px;padding:14px 16px;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;font:700 16.5px/1.35 var(--body);text-wrap:balance}
+.pen-tag{font:700 12px/1 var(--body);background:var(--ink);color:var(--paper);padding:5px 9px;border-radius:999px}
+.pen.rolling{opacity:.55}
+
+/* ---------- akhir ronde ---------- */
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:15}
+.end{display:flex;flex-direction:column;gap:18px;padding:14px 0 26px}
+.end .title{font-size:clamp(34px,10.4vw,46px)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;justify-items:center}
+.pair figure{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
+.pair .card{--w:min(38vw,142px)}
+.pair figcaption{font:600 14px/1 var(--body);color:var(--soft)}
+.roster{list-style:none;padding:0}
+.roster li{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.roster .nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roster .pts{min-width:28px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.roster .pts.zero{color:var(--soft);font-weight:600}
+
+#toast{position:fixed;left:50%;bottom:22px;z-index:40;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--paper);color:var(--ink);font:700 14px/1.35 var(--body);padding:11px 16px;border-radius:12px;max-width:min(92vw,400px);text-align:center;transition:opacity .2s,transform .2s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{transform:translateY(26px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pulse{0%,100%{outline-color:var(--marigold)}50%{outline-color:rgba(255,183,39,.2)}}
+@keyframes pop{0%{transform:scale(.4);opacity:0}45%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes wobble{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+@keyframes dealIn{from{transform:translate(60px,-30px) rotate(9deg);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div id="layer"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ================= data ================= */
+const WORDS = {
+  makanan:{label:"Makanan",list:[["Kopi","Teh"],["Bakso","Mie Ayam"],["Nasi Goreng","Mie Goreng"],["Sate","Kebab"],["Martabak","Roti Bakar"],["Jeruk","Lemon"],["Semangka","Melon"],["Durian","Nangka"],["Rendang","Gulai"],["Es Krim","Yogurt"],["Cokelat","Permen"],["Indomie","Pop Mie"],["Tahu","Tempe"],["Ayam Geprek","Ayam Penyet"],["Boba","Thai Tea"],["Cappuccino","Latte"],["Sushi","Dimsum"],["Pizza","Burger"],["Gorengan","Kerupuk"],["Kopi Susu","Susu Cokelat"],["Donat","Bolu"],["Soto","Rawon"],["Pecel Lele","Ayam Bakar"],["Seblak","Cilok"],["Es Teh","Es Jeruk"],["Croissant","Roti Sobek"],["Kentang Goreng","Keripik"],["Pisang Goreng","Pisang Bakar"],["Sambal","Saus"]]},
+  tempat:{label:"Tempat",list:[["Pantai","Danau"],["Mall","Pasar"],["Hotel","Villa"],["Gunung","Bukit"],["Sungai","Laut"],["Kantor","Sekolah"],["Bioskop","Teater"],["Rumah Sakit","Apotek"],["Kafe","Restoran"],["Bandara","Stasiun"],["Bali","Lombok"],["Jakarta","Surabaya"],["Kos","Apartemen"],["Minimarket","Supermarket"],["Perpustakaan","Toko Buku"],["Kebun Binatang","Taman Safari"],["Kolam Renang","Waterpark"],["Salon","Barbershop"],["Museum","Galeri"],["Gym","Lapangan"]]},
+  benda:{label:"Benda",list:[["Sepeda","Motor"],["Gitar","Ukulele"],["Sendok","Garpu"],["Laptop","Tablet"],["Kamera","Teropong"],["Jam Tangan","Gelang"],["Sepatu","Sandal"],["Kemeja","Kaos"],["Topi","Helm"],["Payung","Jas Hujan"],["Kasur","Sofa"],["Bantal","Guling"],["Lilin","Senter"],["Kipas Angin","AC"],["Sabun","Sampo"],["Pensil","Pulpen"],["Tas","Dompet"],["Kacamata","Lensa Kontak"],["Charger","Power Bank"],["Headset","Speaker"],["Gelas","Cangkir"],["Pesawat","Helikopter"],["Kereta","Bus"],["Kulkas","Freezer"]]},
+  hiburan:{label:"Hiburan",list:[["Instagram","TikTok"],["WhatsApp","Telegram"],["Netflix","YouTube"],["Shopee","Tokopedia"],["Spotify","Radio"],["Karaoke","Konser"],["Sepak Bola","Futsal"],["Badminton","Tenis"],["Ojek Online","Taksi"],["Mobile Legends","Free Fire"],["Sinetron","Drama Korea"],["Basket","Voli"],["Renang","Menyelam"],["Komik","Novel"],["Lari","Jalan Santai"],["Yoga","Senam"],["Mendaki","Kemah"],["Catur","Ludo"]]},
+  orang:{label:"Orang",list:[["Dokter","Perawat"],["Guru","Dosen"],["Polisi","Satpam"],["Pacar","Gebetan"],["Mantan","Teman Lama"],["Ulang Tahun","Pernikahan"],["Mudik","Liburan"],["Kondangan","Arisan"],["Barista","Bartender"],["Koki","Pelayan"],["Pilot","Masinis"],["Kakak","Sepupu"],["Lebaran","Tahun Baru"],["Wisuda","Perpisahan"],["Lembur","Begadang"],["Selebgram","YouTuber"],["Wawancara Kerja","Presentasi"]]},
+  alam:{label:"Alam",list:[["Kucing","Kelinci"],["Nyamuk","Lalat"],["Ayam","Bebek"],["Anjing","Serigala"],["Hujan","Salju"],["Bulan","Matahari"],["Harimau","Singa"],["Buaya","Komodo"],["Lumba-lumba","Paus"],["Kupu-kupu","Capung"],["Cicak","Tokek"],["Sapi","Kerbau"],["Mawar","Melati"],["Semut","Rayap"],["Burung Hantu","Kelelawar"],["Kuda","Zebra"],["Pelangi","Senja"]]}
+};
+const PENALTIES = [
+  {t:"Seru",x:"Tirukan suara hewan pilihan pemenang selama 5 detik."},
+  {t:"Seru",x:"Bicara dengan logat daerah pilihan pemenang sampai ronde berikutnya selesai."},
+  {t:"Seru",x:"Peragakan iklan untuk satu barang di meja selama 15 detik."},
+  {t:"Seru",x:"Jelaskan cara masak mi instan dengan gaya pembaca berita."},
+  {t:"Seru",x:"Layani pesanan pemenang dengan gaya barista paling ramah sedunia."},
+  {t:"Seru",x:"Buat satu pantun tentang pemenang, lalu bacakan."},
+  {t:"Seru",x:"Lontarkan satu tebakan receh. Kalau tidak ada yang ketawa, coba sekali lagi."},
+  {t:"Seru",x:"Gambar wajah pemenang di tisu dalam 30 detik, lalu pamerkan."},
+  {t:"Seru",x:"Nilai minuman tiap pemain dari 1 sampai 10 dengan gaya juri masak."},
+  {t:"Seru",x:"Nyanyikan reff lagu pilihan pemenang. Pelan saja, biar tidak diusir."},
+  {t:"Tantangan",x:"Tahan wajah datar 30 detik, sementara yang lain boleh melucu."},
+  {t:"Tantangan",x:"Sebutkan 10 nama minuman dalam 20 detik."},
+  {t:"Tantangan",x:"Ucapkan alfabet terbalik dari Z ke A tanpa salah."},
+  {t:"Tantangan",x:"Berbisik setiap kali bicara sampai ronde berikutnya selesai."},
+  {t:"Tantangan",x:"Tidak boleh bilang \"nggak\" atau \"enggak\" sampai ronde berikutnya selesai."},
+  {t:"Tantangan",x:"Awali setiap omongan dengan \"Izin, Kak\" selama satu ronde."},
+  {t:"Tantangan",x:"Panggil semua pemain \"Yang Mulia\" selama satu ronde."},
+  {t:"Tantangan",x:"Tidak boleh pegang HP sendiri selama satu ronde."},
+  {t:"Tantangan",x:"Pindah duduk ke kursi pilihan pemenang sampai ronde berikutnya selesai."},
+  {t:"Jujur",x:"Ceritakan momen paling memalukan tahun ini."},
+  {t:"Jujur",x:"Ceritakan crush pertamamu dalam tiga kalimat."},
+  {t:"Jujur",x:"Jawab jujur satu pertanyaan dari pemenang."},
+  {t:"Jujur",x:"Ceritakan kebohongan kecil yang pernah kamu lakukan ke orang tua."},
+  {t:"Jujur",x:"Sebutkan satu kebiasaan aneh yang jarang orang tahu."},
+  {t:"Jujur",x:"Sebut siapa di meja ini yang paling mungkin jadi mata-mata di dunia nyata, dan alasannya."},
+  {t:"Manis",x:"Puji setiap pemain, satu kalimat per orang, tanpa mengulang kata pujian."},
+  {t:"Manis",x:"Sebutkan tiga hal yang kamu suka dari pemain di sebelah kananmu."},
+  {t:"Manis",x:"Kirim pesan terima kasih ke satu teman yang sudah lama tidak kamu kabari."},
+  {t:"HP",x:"Tunjukkan foto paling lama di galeri HP-mu."},
+  {t:"HP",x:"Bacakan chat terakhir yang kamu kirim. Nama boleh disensor."},
+  {t:"HP",x:"Tunjukkan tiga emoji yang paling sering kamu pakai, lalu jelaskan."},
+  {t:"HP",x:"Kirim stiker paling lucu ke tiga chat teratas di WhatsApp-mu."},
+  {t:"HP",x:"Ganti foto profil dengan foto pilihan pemenang selama satu jam."},
+  {t:"HP",x:"Unggah story dengan caption buatan pemenang, biarkan satu jam."},
+  {t:"HP",x:"Ambil selfie dengan ekspresi pilihan pemenang dan kirim ke grup tongkrongan."},
+  {t:"Bantu",x:"Jadi fotografer resmi meja ini sampai pulang."},
+  {t:"Bantu",x:"Ambilkan tisu, sedotan, atau air putih untuk semua pemain."},
+  {t:"Bantu",x:"Bereskan gelas dan piring di meja saat pulang."},
+  {t:"Bantu",x:"Jadi asisten pemenang selama satu ronde: ambilkan apa pun yang dia minta di sekitar meja."},
+  {t:"Bantu",x:"Jadi juri ronde berikutnya dan bacakan aturannya dengan gaya MC."},
+  {t:"Traktir",x:"Traktir satu camilan paling murah di menu untuk dimakan bareng."}
+];
+const COLORS = ["#FFB727","#6FC8FF","#FF8FB1","#B9A6FF","#8EE3B0","#FF9A52","#F2E55C","#5EDAD2"];
+const ROLE = {warga:"Warga",mata:"Mata-mata",white:"Mr. White"};
+const ICON = (d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  sound:ICON('<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'),
+  mute:ICON('<path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6M21 9l-5 6"/>'),
+  help:ICON('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.7c0 1.7-2.5 2.1-2.5 3.8M12 17.2v.1"/>'),
+  trophy:ICON('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>'),
+  close:ICON('<path d="M6 6l12 12M18 6 6 18"/>')
+};
+const EYE = '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 20C12 6 23 2 32 2s20 4 30 18C52 34 41 38 32 38S12 34 2 20Z" fill="currentColor"/><circle class="iris" cx="32" cy="20" r="11"/><circle cx="36" cy="16" r="3.4" fill="currentColor"/></svg>';
+
+/* ================= state ================= */
+const LS = {
+  get(k,d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const cfg = Object.assign({n:8,und:1,white:false,names:[],cat:"campur",timer:60,cw:"",uw:""}, LS.get("mm_setup",{}) || {});
+let scores = LS.get("mm_scores",{}) || {};
+let used = LS.get("mm_used",[]) || [];
+let muted = !!LS.get("mm_mute",false);
+let G = LS.get("mm_game",null);
+const ui = {layer:null, err:"", screen:""};
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rnd = () => { try{ const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]/4294967296; }catch(e){ return Math.random(); } };
+const rand = n => Math.floor(rnd()*n);
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){ const j=rand(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const maxInfil = n => Math.floor((n-1)/2);
+const pname = i => (cfg.names[i]||"").trim() || `Pemain ${i+1}`;
+const chipLabel = (name,i) => /^Pemain \d+$/.test(name) ? String(i+1) : name.trim().charAt(0).toUpperCase();
+const chip = (name,i,cls="") => `<span class="chip ${cls}" style="--c:${COLORS[i%COLORS.length]}">${esc(chipLabel(name,i))}</span>`;
+const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"");
+const fmt = s => `${Math.floor(Math.max(0,s)/60)}:${String(Math.max(0,s)%60).padStart(2,"0")}`;
+const saveCfg = () => LS.set("mm_setup", cfg);
+const saveGame = () => LS.set("mm_game", G);
+
+function fixCfg(){
+  cfg.n = Math.min(12, Math.max(3, parseInt(cfg.n,10) || 8));
+  cfg.und = Math.max(1, parseInt(cfg.und,10) || 1);
+  cfg.white = !!cfg.white;
+  const mx = maxInfil(cfg.n);
+  while(cfg.und + (cfg.white?1:0) > mx){ if(cfg.white) cfg.white=false; else if(cfg.und>1) cfg.und--; else break; }
+  if(!Array.isArray(cfg.names)) cfg.names = [];
+  if(cfg.cat!=="campur" && cfg.cat!=="custom" && !(cfg.cat in WORDS)) cfg.cat = "campur";
+  if(![0,60,120].includes(cfg.timer)) cfg.timer = 60;
+}
+fixCfg();
+if(G && (!Array.isArray(G.players) || !G.phase)) G = null;
+
+/* ================= suara & getar ================= */
+let ac = null;
+function audio(){
+  if(muted) return null;
+  try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==="suspended") ac.resume(); return ac; }catch(e){ return null; }
+}
+function tone(f,dur,type="triangle",vol=.12,when=0,slide){
+  const a = audio(); if(!a) return;
+  try{
+    const t = a.currentTime+when, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f,t);
+    if(slide) o.frequency.exponentialRampToValueAtTime(slide,t+dur);
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.012); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+.03);
+  }catch(e){}
+}
+function noise(dur,vol=.1,when=0,freq=1800){
+  const a = audio(); if(!a) return;
+  try{
+    const t = a.currentTime+when, len = Math.floor(a.sampleRate*dur), buf = a.createBuffer(1,len,a.sampleRate), d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*(1-i/len);
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = buf; f.type = "bandpass"; f.frequency.value = freq; g.gain.value = vol;
+    s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+  }catch(e){}
+}
+const sfx = {
+  tap(){ tone(520,.05,"triangle",.07); },
+  flip(){ noise(.14,.16,0,2400); tone(320,.09,"sine",.05,0,640); },
+  shut(){ noise(.1,.1,0,1300); },
+  step(){ tone(660,.07,"triangle",.1); tone(880,.1,"triangle",.1,.07); },
+  tick(){ tone(990,.04,"square",.045); },
+  count(){ tone(440,.16,"triangle",.15); },
+  go(){ tone(880,.32,"triangle",.16); tone(1320,.32,"triangle",.09,.02); },
+  drum(){ for(let i=0;i<17;i++) noise(.06,.08+i*.008,i*.105,230); },
+  caught(){ [523,659,784,1047].forEach((f,i)=>tone(f,.2,"triangle",.14,i*.09)); },
+  wrong(){ tone(220,.26,"sawtooth",.08,0,140); tone(160,.36,"sawtooth",.08,.22,90); },
+  win(){ [523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,.22,"triangle",.14,i*.11)); },
+  alarm(){ [0,.18,.36].forEach(w=>tone(1200,.1,"square",.07,w)); }
+};
+const buzz = p => { try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} };
+
+/* ================= kartu ================= */
+function wordSize(w){
+  const L = Math.max(...String(w).split(/\s+/).map(x=>x.length));
+  return L<=4 ? "xl" : L<=6 ? "lg" : L<=8 ? "" : L<=10 ? "sm" : "xs";
+}
+function cardHTML({seat, face, hold, open, mini}){
+  let cls = "", body = "";
+  if(face.kind==="word"){
+    body = `<span class="card-cap">${esc(face.cap||"Kata kamu")}</span><strong class="card-word ${wordSize(face.word)}">${esc(face.word)}</strong>${face.sub?`<span class="card-cap">${esc(face.sub)}</span>`:""}`;
+    cls = face.tone ? "f-"+face.tone : "";
+  } else if(face.kind==="blank"){
+    cls = "f-white";
+    body = `<strong class="card-word xl">?</strong><span class="card-cap">Kartumu kosong. Kamu Mr. White.<br>Simak petunjuk yang lain, lalu ikut berbaur.</span>`;
+  } else {
+    cls = "f-"+face.role;
+    body = `<span class="card-cap">${esc(face.name)} adalah</span><strong class="card-word ${face.role==="warga"?"lg":""}">${ROLE[face.role]}</strong>`;
+  }
+  const idx = seat==null ? "" : `<span class="idx tl">${seat+1}${EYE}</span><span class="idx br">${EYE}</span>`;
+  return `<div class="card ${open?"is-open":""} ${mini?"mini":""}" ${hold?`data-hold="${hold}" tabindex="0" role="button" aria-label="Tahan untuk mengintip kartu"`:""}>
+    <div class="card-inner">
+      <div class="card-face card-back"><span class="emblem">${EYE}</span></div>
+      <div class="card-face card-front ${cls}">${idx}<div class="card-body">${body}</div></div>
+    </div>
+  </div>`;
+}
+const secretFace = p => p.role==="white" ? {kind:"blank"} : {kind:"word", word:p.role==="warga"?G.civ:G.und, sub:"Jangan diucapkan langsung"};
+
+/* ================= layar ================= */
+function bar({brand, exit, fan}={}){
+  return `<div class="bar ${fan?"tall":""}">
+    ${fan?`<div class="fan" aria-hidden="true"><i>Kopi</i><i>Kopi</i><i>Teh</i></div>`:""}
+    ${brand?`<span class="brand">Siapa Mata-matanya?</span>`:""}
+    <span class="bar-btns">
+      <button class="icon" data-act="mute" aria-label="${muted?"Nyalakan suara":"Matikan suara"}">${muted?I.mute:I.sound}</button>
+      <button class="icon" data-act="help" aria-label="Cara main">${I.help}</button>
+      <button class="icon" data-act="scores" aria-label="Klasemen">${I.trophy}</button>
+      ${exit?`<button class="icon" data-act="quit" aria-label="Akhiri ronde">${I.close}</button>`:""}
+    </span>
+  </div>`;
+}
+
+function vSetup(){
+  const mx = maxInfil(cfg.n), infil = cfg.und + (cfg.white?1:0), civ = cfg.n - infil;
+  const names = Array.from({length:cfg.n},(_,i)=>`<label class="name">${chip(pname(i),i)}<input id="name${i}" data-name="${i}" value="${esc(cfg.names[i]||"")}" placeholder="Pemain ${i+1}" maxlength="10" autocomplete="off" aria-label="Nama pemain ${i+1}"></label>`).join("");
+  const cats = [["campur","Campur"],...Object.entries(WORDS).map(([k,v])=>[k,v.label]),["custom","Tulis sendiri"]]
+    .map(([k,l])=>`<button class="choice" data-act="cat" data-v="${k}" aria-pressed="${cfg.cat===k}">${l}</button>`).join("");
+  const timers = [[0,"Bebas"],[60,"1 menit"],[120,"2 menit"]]
+    .map(([v,l])=>`<button class="choice" data-act="timer" data-v="${v}" aria-pressed="${cfg.timer===v}">${l}</button>`).join("");
+  const whiteBlocked = !cfg.white && infil+1>mx;
+  return bar({fan:true}) + `
+  <header class="hero">
+    <h1 class="title">Siapa <span class="nb">Mata-matanya?</span></h1>
+    <p class="lede">Semua dapat kata yang sama. Kecuali satu orang.</p>
+  </header>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Pemain</h2>
+      <div class="stepper"><button data-act="nMinus" aria-label="Kurangi pemain" ${cfg.n<=3?"disabled":""}>−</button><output>${cfg.n}</output><button data-act="nPlus" aria-label="Tambah pemain" ${cfg.n>=12?"disabled":""}>+</button></div>
+    </div>
+    <p class="note">Isi urut searah jarum jam, mulai dari yang pegang HP.</p>
+    <div class="names">${names}</div>
+  </section>
+
+  <section class="sec">
+    <div class="row"><div><h2>Mata-mata</h2><p class="note">Dapat kata yang mirip, dan tidak tahu dirinya mata-mata.</p></div>
+      <div class="stepper"><button data-act="uMinus" aria-label="Kurangi mata-mata" ${cfg.und<=1?"disabled":""}>−</button><output>${cfg.und}</output><button data-act="uPlus" aria-label="Tambah mata-mata" ${infil+1>mx?"disabled":""}>+</button></div>
+    </div>
+    <div class="row"><div><b>Mr. White</b><p class="note">${whiteBlocked?"Tambah pemain dulu untuk memakai Mr. White.":"Kartunya kosong. Kalau tertangkap, dia boleh menebak kata warga."}</p></div>
+      <button class="switch" role="switch" aria-checked="${cfg.white}" aria-label="Mr. White" data-act="white" ${whiteBlocked?"disabled":""}></button>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Kata</h2>
+    <div class="choices">${cats}</div>
+    ${cfg.cat==="custom"?`<div class="two"><input class="field" id="cw" data-bind="cw" value="${esc(cfg.cw||"")}" placeholder="Kata warga" maxlength="18" autocomplete="off" aria-label="Kata warga"><input class="field" id="uw" data-bind="uw" value="${esc(cfg.uw||"")}" placeholder="Kata mata-mata" maxlength="18" autocomplete="off" aria-label="Kata mata-mata"></div>
+    <p class="note">Yang menulis kata jadi juri dan tidak ikut main.</p>`:""}
+  </section>
+
+  <section class="sec">
+    <h2>Waktu diskusi</h2>
+    <div class="choices">${timers}</div>
+  </section>
+
+  <div class="dock">
+    ${ui.err?`<p class="err" role="alert">${esc(ui.err)}</p>`:`<p class="sum">${cfg.n} pemain: ${civ} warga, ${cfg.und} mata-mata${cfg.white?", 1 Mr. White":""}</p>`}
+    <button class="btn" data-act="start">Bagikan kartu</button>
+  </div>`;
+}
+
+function dealLabel(){
+  const i = G.dealIdx, last = i===G.players.length-1;
+  return last ? "Semua sudah, ke meja" : `Sudah, oper ke ${G.players[i+1].name}`;
+}
+function vDeal(){
+  const i = G.dealIdx, p = G.players[i], n = G.players.length;
+  return bar({brand:true, exit:true}) + `
+  <main class="deal">
+    <div class="dots" role="img" aria-label="Kartu ${i+1} dari ${n}">${G.players.map((_,k)=>`<i class="${k<i?"done":k===i?"now":""}"></i>`).join("")}</div>
+    <p class="pass">${i===0?"Mulai dari":"Oper HP ke"}</p>
+    <div class="who">${chip(p.name,i,"big")}<h2>${esc(p.name)}</h2></div>
+    ${cardHTML({seat:i, face:secretFace(p), hold:"deal"})}
+    <p class="hint">Tekan dan tahan kartu untuk mengintip.<br>Lepas untuk menutup.</p>
+    <button class="btn" id="dealBtn" data-act="dealNext" ${G.peeked?"":"disabled"}>${G.peeked?esc(dealLabel()):"Intip kartumu dulu"}</button>
+  </main>`;
+}
+
+function nextAlive(i,noWhite){
+  const n = G.players.length;
+  for(let k=1;k<=n;k++){ const j=(i+k)%n, p=G.players[j]; if(p.alive && !(noWhite && p.role==="white")) return j; }
+  return i;
+}
+function vTable(){
+  const n = G.players.length, ph = G.phase, order = ["clue","discuss","vote"], pi = order.indexOf(ph);
+  const alive = G.players.filter(p=>p.alive), hidden = alive.filter(p=>p.role!=="warga").length;
+  const seats = G.players.map((p,i)=>{
+    const a = Math.PI/2 + i*2*Math.PI/n, x = 50+41*Math.cos(a), y = 50+43*Math.sin(a);
+    const cls = [p.alive?"":"out", ph==="clue"&&G.turn===i?"turn":"", ph==="vote"&&G.selected===i?"sel":""].join(" ");
+    return `<button class="seat ${cls}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%" data-act="seat" data-i="${i}" ${ph==="vote"&&p.alive?"":"disabled"} aria-label="${esc(p.name)}${p.alive?"":", "+ROLE[p.role]+", gugur"}">
+      ${chip(p.name,i)}<span class="seat-name">${esc(p.name)}</span>${p.alive?"":`<span class="tag ${p.role}">${ROLE[p.role]}</span>`}</button>`;
+  }).join("");
+  const big = s => `<strong class="c-big ${s.length>7?"long":""}">${esc(s)}</strong>`;
+  let center, actions;
+  if(ph==="clue"){
+    const lastTurn = G.spoken+1 >= alive.length;
+    center = `<span class="c-small">Putaran ${G.round}, giliran</span>${big(G.players[G.turn].name)}<span class="c-small">Sebut satu kata petunjuk</span>`;
+    actions = `<button class="btn" data-act="clueNext">${lastTurn?"Semua sudah, lanjut diskusi":"Berikutnya: "+esc(G.players[nextAlive(G.turn)].name)}</button>
+      <div class="links">${lastTurn?"":`<button class="link" data-act="skipClue">Lewati ke diskusi</button>`}<button class="link" data-act="forgot">Lupa kata?</button></div>`;
+  } else if(ph==="discuss"){
+    center = G.timer>0
+      ? `<strong class="c-time ${G.timeLeft<=10?"low":""}" id="time">${fmt(G.timeLeft)}</strong><span class="c-small" id="timeNote">${G.timeLeft<=0?"Waktu habis. Saatnya voting.":"Diskusi. Siapa yang mencurigakan?"}</span>`
+      : `${big("Diskusi")}<span class="c-small">Siapa yang mencurigakan?</span>`;
+    actions = `<button class="btn" data-act="toVote">Mulai voting</button>
+      <div class="links">${G.timer>0?`<button class="link" data-act="addTime">Tambah 30 detik</button>`:""}<button class="link" data-act="forgot">Lupa kata?</button></div>`;
+  } else {
+    const sel = G.selected;
+    center = sel==null
+      ? `${big("Voting")}<span class="c-small">Tunjuk bareng, lalu ketuk kursi yang paling banyak ditunjuk</span>`
+      : `<span class="c-small">Suara terbanyak</span>${big(G.players[sel].name)}<span class="c-small">Ketuk kursi lain untuk ganti</span>`;
+    actions = (sel==null
+      ? `<button class="btn" data-act="count">Hitung 3, 2, 1</button>`
+      : `<button class="btn tomato" data-act="open">Buka kartu ${esc(G.players[sel].name)}</button>`)
+      + `<div class="links">${sel==null?"":`<button class="link" data-act="count">Hitung ulang</button>`}<button class="link" data-act="forgot">Lupa kata?</button></div>`;
+  }
+  return bar({brand:true, exit:true}) + `
+  <ol class="phases">${["Petunjuk","Diskusi","Voting"].map((l,k)=>`<li class="${k===pi?"on":k<pi?"past":""}" ${k===pi?'aria-current="step"':""}>${l}</li>`).join("")}</ol>
+  <div class="table-wrap ${n>10?"n-big":n>8?"n-mid":""}">
+    <div class="table"><div class="center">${center}</div></div>
+    ${seats}
+  </div>
+  <div class="actions">
+    <p class="status">${alive.length} pemain tersisa, ${hidden} penyusup belum ketahuan.</p>
+    ${actions}
+  </div>`;
+}
+
+function vEnd(){
+  const w = G.winner;
+  const head = w==="warga" ? "Warga menang!" : w==="mata" ? "Mata-mata menang!" : "Mr. White menang!";
+  const white = G.players.find(p=>p.role==="white");
+  const sub = w==="warga" ? `Semua penyusup tertangkap dalam ${G.round} putaran.`
+            : w==="mata" ? "Penyusup bertahan sampai jumlahnya menyamai warga."
+            : `${white?white.name:"Mr. White"} menebak kata warga dengan benar.`;
+  const losers = G.players.filter(p=>!G.award[p.name]);
+  return `<canvas id="confetti" aria-hidden="true"></canvas>` + bar({brand:true}) + `
+  <main class="end">
+    <header class="stack" style="gap:8px"><h1 class="title">${head}</h1><p class="lede">${esc(sub)}</p></header>
+    <div class="pair">
+      <figure>${cardHTML({face:{kind:"word",cap:"Warga",word:G.civ}, open:true, mini:true})}<figcaption>Kata warga</figcaption></figure>
+      <figure>${cardHTML({face:{kind:"word",cap:"Mata-mata",word:G.und,tone:"mata"}, open:true, mini:true})}<figcaption>Kata mata-mata</figcaption></figure>
+    </div>
+    <ul class="roster">${G.players.map((p,i)=>`<li>${chip(p.name,i)}<span class="nm">${esc(p.name)}</span><span class="tag ${p.role}">${ROLE[p.role]}</span><span class="pts ${G.award[p.name]?"":"zero"}">${G.award[p.name]?"+"+G.award[p.name]:"0"}</span></li>`).join("")}</ul>
+    <div class="stack">
+      <button class="btn" data-act="again">Main lagi</button>
+      ${losers.length?`<button class="btn quiet" data-act="penalty">Acak hukuman untuk yang kalah</button>`:""}
+      <button class="link" data-act="setup">Ubah pemain atau aturan</button>
+    </div>
+  </main>`;
+}
+
+function render(){
+  const screen = !G ? "setup" : G.phase==="deal" ? "deal"+G.dealIdx : G.phase==="end" ? "end" : "table";
+  $("#app").innerHTML = !G ? vSetup() : G.phase==="deal" ? vDeal() : G.phase==="end" ? vEnd() : vTable();
+  if(screen!==ui.screen){ ui.screen = screen; window.scrollTo(0,0); }
+  syncTimer();
+  renderLayer();
+}
+
+/* ================= lapisan ================= */
+function revealFoot(L){
+  const p = G.players[L.i];
+  if(L.stage==="suspense") return `<p class="hint">Membuka kartu…</p>`;
+  if(L.stage==="wrong") return `<p class="verdict">${L.guess?`Tebakan “${esc(L.guess)}” salah.`:"Mr. White menyerah."} Dia gugur.</p><button class="btn" data-act="revealNext">Lanjut</button>`;
+  if(p.role==="white") return `<p class="verdict">Mr. White tertangkap. Satu kesempatan: tebak kata warga.</p>
+    <form class="guess" data-form="guess"><input class="field" id="guess" placeholder="Tebakan ${esc(p.name)}" maxlength="24" autocomplete="off" autocapitalize="off" aria-label="Tebakan kata warga"><button class="btn" type="submit">Tebak</button></form>
+    <button class="link" data-act="giveUp">Menyerah</button>`;
+  return `<p class="verdict">${p.role==="warga"?"Salah tangkap. Penyusup masih duduk di meja.":"Ketahuan. Satu penyusup gugur."}</p><button class="btn" data-act="revealNext">Lanjut</button>`;
+}
+function vLayer(L){
+  const head = (t)=>`<div class="sheet-head"><h2>${t}</h2><button class="icon" data-act="closeLayer" aria-label="Tutup">${I.close}</button></div>`;
+  if(L.type==="help") return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Cara main">${head("Cara main")}
+    <ol class="steps">
+      <li>Gilir HP. Tiap pemain menahan kartunya untuk mengintip kata rahasia.</li>
+      <li>Semua warga dapat kata yang sama. Mata-mata dapat kata yang mirip, dan tidak tahu dirinya mata-mata.</li>
+      <li>Bergiliran, tiap pemain menyebut satu kata petunjuk. Jangan terlalu jelas, jangan terlalu ngawur.</li>
+      <li>Diskusi, lalu tunjuk bareng di hitungan ketiga. Pemain dengan suara terbanyak membuka kartunya.</li>
+      <li>Warga menang kalau semua penyusup gugur. Penyusup menang kalau jumlahnya menyamai warga.</li>
+    </ol>
+    <p class="note">Mr. White memegang kartu kosong. Kalau tertangkap, dia menang dengan menebak kata warga.</p>
+    <p class="note">Peran diacak ulang setiap ronde. Yang baru saja jadi penyusup jarang kebagian lagi di ronde berikutnya.</p>
+    <p class="note">Skor per ronde: warga menang +2, penyusup menang +4, Mr. White menebak benar +6.</p></div></div>`;
+  if(L.type==="scores"){
+    const rows = Object.entries(scores).sort((a,b)=>b[1]-a[1]), top = Math.max(1,...rows.map(r=>r[1]));
+    return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Klasemen">${head("Klasemen")}
+      ${rows.length?`<ol class="scores">${rows.map(([n,s],k)=>`<li><span class="rank">${k+1}</span><span class="nm">${esc(n)}</span><span class="pt">${s}</span><span class="track"><i style="width:${Math.round(s/top*100)}%"></i></span></li>`).join("")}</ol>
+      <button class="link" data-act="resetScores">Hapus semua skor</button>`
+      :`<p class="note">Belum ada skor. Selesaikan satu ronde dulu.</p>`}</div></div>`;
+  }
+  if(L.type==="pick") return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Lupa kata">${head("Siapa yang lupa kata?")}
+    <p class="note">Serahkan HP ke orangnya, lalu ketuk namanya.</p>
+    <div class="picks">${G.players.map((p,i)=>p.alive?`<button class="pick" data-act="peek" data-i="${i}">${chip(p.name,i)}<span>${esc(p.name)}</span></button>`:"").join("")}</div></div></div>`;
+  if(L.type==="peek"){
+    const p = G.players[L.i];
+    return `<div class="layer"><div class="who">${chip(p.name,L.i,"big")}<h2>${esc(p.name)}</h2></div>${cardHTML({seat:L.i, face:secretFace(p), hold:"peek"})}
+      <div class="foot"><p class="hint">Tekan dan tahan kartu untuk mengintip.</p><button class="btn" data-act="closeLayer">Tutup</button></div></div>`;
+  }
+  if(L.type==="reveal"){
+    const p = G.players[L.i], shown = L.stage!=="suspense";
+    return `<div class="layer reveal ${shown?"shown still":""}"><div class="who">${chip(p.name,L.i,"big")}<h2>${esc(p.name)}</h2></div>
+      ${cardHTML({seat:L.i, face:{kind:"role",role:p.role,name:p.name}, open:shown})}<div class="foot">${revealFoot(L)}</div></div>`;
+  }
+  if(L.type==="count") return `<div class="layer still" aria-live="assertive"><div class="count">${L.text}</div></div>`;
+  if(L.type==="confirm") return `<div class="layer bottom" data-dismiss><div class="sheet" role="alertdialog" aria-label="Konfirmasi"><p class="verdict">${esc(L.msg)}</p>
+    <button class="btn tomato" data-act="${L.yes}">${esc(L.yesLabel)}</button><button class="btn quiet" data-act="closeLayer">Batal</button></div></div>`;
+  if(L.type==="penalty"){
+    const losers = G.players.map((p,i)=>i).filter(i=>!G.award[G.players[i].name]);
+    const picks = L.picks || {}, any = Object.keys(picks).length>0;
+    return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Hukuman">${head("Hukuman")}
+      <p class="note">Tiap yang kalah dapat hukuman sendiri. Kalau ada yang tidak bisa dilakukan, ketuk Ganti.</p>
+      <ul class="pens">${losers.map(i=>{ const p = G.players[i], P = picks[i]!=null ? PENALTIES[picks[i]] : null;
+        return `<li><div class="pen-who">${chip(p.name,i)}<b>${esc(p.name)}</b>${P?`<button class="link" data-act="reroll" data-i="${i}">Ganti</button>`:""}</div>
+        <div class="pen" id="pen${i}">${P?penHTML(P):"?"}</div></li>`; }).join("")}</ul>
+      <button class="btn" id="rollBtn" data-act="roll">${any?"Acak ulang semua":"Acak hukuman"}</button></div></div>`;
+  }
+  return "";
+}
+function renderLayer(){ $("#layer").innerHTML = ui.layer ? vLayer(ui.layer) : ""; }
+function closeLayer(){ ui.layer = null; renderLayer(); }
+
+let toastT = null;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("on"),2400); }
+
+/* ================= alur permainan ================= */
+function validate(){
+  const names = Array.from({length:cfg.n},(_,i)=>pname(i).toLowerCase());
+  if(new Set(names).size!==names.length) return "Ada dua pemain dengan nama yang sama. Bedakan salah satunya.";
+  if(cfg.cat==="custom"){
+    const a = (cfg.cw||"").trim(), b = (cfg.uw||"").trim();
+    if(!a || !b) return "Isi kata warga dan kata mata-mata dulu.";
+    if(norm(a)===norm(b)) return "Kata warga dan kata mata-mata harus berbeda.";
+  }
+  return "";
+}
+function newGame(){
+  const names = Array.from({length:cfg.n},(_,i)=>pname(i));
+  let civ, und;
+  if(cfg.cat==="custom"){ civ = cfg.cw.trim(); und = cfg.uw.trim(); }
+  else{
+    const pool = (cfg.cat==="campur" ? Object.keys(WORDS) : [cfg.cat]).flatMap(k=>WORDS[k].list);
+    const key = p => p[0]+"|"+p[1];
+    let fresh = pool.filter(p=>!used.includes(key(p)));
+    if(!fresh.length){ const keys = new Set(pool.map(key)); used = used.filter(k=>!keys.has(k)); fresh = pool; }
+    const p = fresh[rand(fresh.length)];
+    used.push(key(p)); LS.set("mm_used",used);
+    [civ,und] = rnd()<.5 ? p : [p[1],p[0]];
+  }
+  const roles = assignRoles(names);
+  G = {players:names.map((name,i)=>({name,role:roles[i],alive:true})), civ, und, phase:"deal", dealIdx:0, peeked:false,
+       round:1, starter:0, turn:0, spoken:0, selected:null, timer:cfg.timer, timeLeft:cfg.timer, winner:null, award:{}};
+  ui.layer = null; saveGame(); render();
+}
+/* Peran diacak ulang tiap ronde. Yang baru saja jadi penyusup peluangnya kecil sekali
+   untuk kebagian lagi, lalu pulih bertahap dalam tiga ronde. */
+function assignRoles(names){
+  const H = LS.get("mm_hist",{g:0,p:{}}) || {g:0,p:{}};
+  H.p = H.p || {}; H.g = (H.g||0) + 1;
+  const g = H.g, key = n => n.trim().toLowerCase(), rec = n => H.p[key(n)] || {};
+  const fresh = last => last==null ? 1 : Math.max(.06, Math.min(1, (g-last-1)/3));
+  const pick = (cands, wf) => {
+    const ws = cands.map(wf), tot = ws.reduce((a,b)=>a+b,0);
+    let r = rnd()*tot;
+    for(let k=0;k<cands.length;k++){ r -= ws[k]; if(r<=0) return cands[k]; }
+    return cands[cands.length-1];
+  };
+  const roles = names.map(()=> "warga");
+  let pool = shuffle(names.map((_,i)=>i));
+  if(cfg.white){
+    const i = pick(pool, i=>{ const h = rec(names[i]); return fresh(h.white)*fresh(h.inf); });
+    roles[i] = "white"; pool = pool.filter(x=>x!==i);
+  }
+  for(let u=0;u<cfg.und;u++){
+    const i = pick(pool, i=>fresh(rec(names[i]).inf));
+    roles[i] = "mata"; pool = pool.filter(x=>x!==i);
+  }
+  names.forEach((n,i)=>{
+    if(roles[i]==="warga") return;
+    const h = H.p[key(n)] = H.p[key(n)] || {};
+    h.inf = g; if(roles[i]==="white") h.white = g;
+  });
+  LS.set("mm_hist",H);
+  return roles;
+}
+function startRound(first){
+  if(first){ const c = G.players.map((p,i)=>i).filter(i=>G.players[i].role!=="white"); G.starter = c[rand(c.length)]; }
+  else{ G.round++; G.starter = nextAlive(G.starter,true); }
+  G.turn = G.starter; G.spoken = 0; G.selected = null; G.phase = "clue";
+  saveGame(); render();
+}
+function toDiscuss(){ G.phase = "discuss"; G.timeLeft = G.timer; saveGame(); sfx.step(); render(); }
+
+let tmr = null;
+function stopTimer(){ clearInterval(tmr); tmr = null; }
+function paintTime(){
+  const el = $("#time"); if(!el) return;
+  el.textContent = fmt(G.timeLeft); el.classList.toggle("low", G.timeLeft<=10);
+  const n = $("#timeNote"); if(n) n.textContent = G.timeLeft<=0 ? "Waktu habis. Saatnya voting." : "Diskusi. Siapa yang mencurigakan?";
+}
+function syncTimer(){
+  stopTimer();
+  if(!(G && G.phase==="discuss" && G.timer>0 && G.timeLeft>0)) return;
+  tmr = setInterval(()=>{
+    if(!G || G.phase!=="discuss"){ stopTimer(); return; }
+    G.timeLeft--; paintTime();
+    if(G.timeLeft>0 && G.timeLeft<=5) sfx.tick();
+    if(G.timeLeft<=0){ stopTimer(); sfx.alarm(); buzz([120,80,120]); }
+  },1000);
+}
+
+let seqT = null;
+function startCountdown(){
+  const seq = ["3","2","1","Tunjuk!"]; let k = 0;
+  clearTimeout(seqT);
+  (function show(){
+    const last = k===seq.length-1;
+    ui.layer = {type:"count", text:seq[k]}; renderLayer();
+    if(last){ sfx.go(); buzz(200); } else sfx.count();
+    k++;
+    seqT = setTimeout(last ? ()=>{ if(ui.layer && ui.layer.type==="count") closeLayer(); } : show, last?1100:800);
+  })();
+}
+function openReveal(){
+  if(G.selected==null) return;
+  ui.layer = {type:"reveal", i:G.selected, stage:"suspense"}; renderLayer();
+  sfx.drum();
+  clearTimeout(seqT); seqT = setTimeout(revealShow, REDUCED?700:1900);
+}
+function revealShow(){
+  const L = ui.layer; if(!L || L.type!=="reveal" || L.stage!=="suspense") return;
+  L.stage = "shown";
+  const root = $(".layer.reveal"); if(!root){ renderLayer(); return; }
+  root.classList.add("shown"); root.querySelector(".card").classList.add("is-open");
+  root.querySelector(".foot").innerHTML = revealFoot(L);
+  const role = G.players[L.i].role;
+  sfx.flip(); if(role==="warga"){ sfx.wrong(); buzz([60,60,60]); } else { sfx.caught(); buzz(140); }
+}
+function lev(a,b){
+  let prev = Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){ const cur=[i]; for(let j=1;j<=b.length;j++) cur[j] = Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1)); prev = cur; }
+  return prev[b.length];
+}
+function guessOk(g,w){ g = norm(g); w = norm(w); return !!g && (g===w || (w.length>=5 && lev(g,w)<=1)); }
+function afterReveal(){
+  const L = ui.layer; if(!L || L.type!=="reveal") return;
+  G.players[L.i].alive = false; G.selected = null; ui.layer = null;
+  const alive = G.players.filter(p=>p.alive), inf = alive.filter(p=>p.role!=="warga").length, civ = alive.length-inf;
+  if(inf===0) return finish("warga");
+  if(civ<=inf) return finish("mata");
+  startRound(false);
+}
+function finish(w){
+  stopTimer();
+  G.winner = w; G.phase = "end"; G.award = {};
+  G.players.forEach(p=>{
+    const pts = w==="warga" ? (p.role==="warga"?2:0) : w==="mata" ? (p.role!=="warga"?4:0) : (p.role==="white"?6:0);
+    G.award[p.name] = pts; scores[p.name] = (scores[p.name]||0)+pts;
+  });
+  LS.set("mm_scores",scores); ui.layer = null; saveGame(); render();
+  sfx.win(); buzz([80,60,80,60,220]); confetti();
+}
+function confetti(){
+  const c = document.getElementById("confetti"); if(!c || REDUCED) return;
+  const ctx = c.getContext("2d"), dpr = Math.min(2,window.devicePixelRatio||1);
+  const W = c.width = innerWidth*dpr, H = c.height = innerHeight*dpr;
+  const cols = ["#FFB727","#EE4B3E","#8EE3B0","#FFF3D9","#6FC8FF"];
+  const P = Array.from({length:120},()=>({x:Math.random()*W,y:-Math.random()*H*.6,vx:(Math.random()-.5)*2.4*dpr,vy:(2.2+Math.random()*4)*dpr,s:(6+Math.random()*7)*dpr,r:Math.random()*6,vr:(Math.random()-.5)*.3,c:cols[rand(cols.length)]}));
+  const t0 = performance.now();
+  (function frame(t){
+    if(!c.isConnected) return;
+    const life = (t-t0)/4200; ctx.clearRect(0,0,W,H); if(life>=1) return;
+    ctx.globalAlpha = life>.75 ? (1-life)*4 : 1;
+    for(const p of P){ p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.c; ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); ctx.restore(); }
+    requestAnimationFrame(frame);
+  })(t0);
+}
+const penHTML = P => `<span class="pen-tag">${P.t}</span><span>${esc(P.x)}</span>`;
+let penBag = LS.get("mm_penbag",[]) || [], rolling = false;
+function drawPen(avoid){
+  if(!penBag.length || penBag.some(k=>k>=PENALTIES.length)) penBag = shuffle(PENALTIES.map((_,k)=>k));
+  let j = penBag.findIndex(k=>!avoid.includes(k)); if(j<0) j = 0;
+  const v = penBag.splice(j,1)[0]; LS.set("mm_penbag",penBag); return v;
+}
+function rollPenalty(only){
+  const L = ui.layer; if(!L || L.type!=="penalty" || rolling) return;
+  L.picks = L.picks || {};
+  const losers = G.players.map((p,i)=>i).filter(i=>!G.award[G.players[i].name]);
+  const targets = only!=null ? [only] : losers;
+  const avoid = Object.values(L.picks);
+  targets.forEach(i=>{ const k = drawPen(avoid); avoid.push(k); L.picks[i] = k; });
+  renderLayer();
+  const els = targets.map(i=>document.getElementById("pen"+i)).filter(Boolean);
+  document.querySelectorAll("#rollBtn,[data-act=reroll]").forEach(b=>b.disabled = true);
+  rolling = true;
+  let k = 0; const total = REDUCED?1:14;
+  (function step(){
+    if(!els.length || !els[0].isConnected){ rolling = false; return; }
+    if(k<total){ els.forEach(e=>{ e.classList.add("rolling"); e.innerHTML = penHTML(PENALTIES[rand(PENALTIES.length)]); }); sfx.tick(); k++; setTimeout(step,55+k*9); }
+    else{ rolling = false; renderLayer(); sfx.caught(); buzz(80); }
+  })();
+}
+
+/* ================= aksi ================= */
+const A = {
+  nMinus(){ cfg.n--; fixCfg(); saveCfg(); ui.err=""; render(); },
+  nPlus(){ cfg.n++; fixCfg(); saveCfg(); ui.err=""; render(); },
+  uMinus(){ cfg.und--; fixCfg(); saveCfg(); render(); },
+  uPlus(){ if(cfg.und+1+(cfg.white?1:0)<=maxInfil(cfg.n)){ cfg.und++; saveCfg(); render(); } },
+  white(){ if(cfg.white || cfg.und+1<=maxInfil(cfg.n)){ cfg.white = !cfg.white; saveCfg(); render(); } },
+  cat(el){ cfg.cat = el.dataset.v; ui.err=""; saveCfg(); render(); },
+  timer(el){ cfg.timer = +el.dataset.v; saveCfg(); render(); },
+  start(){ const e = validate(); if(e){ ui.err = e; render(); return; } ui.err=""; sfx.step(); newGame(); },
+  dealNext(){
+    if(!G.peeked) return;
+    if(G.dealIdx>=G.players.length-1){ sfx.step(); startRound(true); return; }
+    G.dealIdx++; G.peeked = false; saveGame(); sfx.step(); render();
+  },
+  clueNext(){
+    const alive = G.players.filter(p=>p.alive).length;
+    G.spoken++;
+    if(G.spoken>=alive) return toDiscuss();
+    G.turn = nextAlive(G.turn); saveGame(); sfx.step(); render();
+  },
+  skipClue(){ toDiscuss(); },
+  addTime(){ G.timeLeft = Math.max(0,G.timeLeft)+30; paintTime(); if(!tmr) syncTimer(); },
+  toVote(){ stopTimer(); G.phase = "vote"; G.selected = null; saveGame(); sfx.step(); render(); },
+  count(){ startCountdown(); },
+  seat(el){ const i = +el.dataset.i; if(G.phase!=="vote" || !G.players[i].alive) return; G.selected = G.selected===i ? null : i; sfx.step(); render(); },
+  open(){ openReveal(); },
+  giveUp(){ const L = ui.layer; L.stage = "wrong"; L.guess = ""; renderLayer(); sfx.wrong(); },
+  revealNext(){ afterReveal(); },
+  forgot(){ ui.layer = {type:"pick"}; renderLayer(); },
+  peek(el){ ui.layer = {type:"peek", i:+el.dataset.i}; renderLayer(); },
+  closeLayer(){ closeLayer(); },
+  mute(){ muted = !muted; LS.set("mm_mute",muted); render(); if(!muted) sfx.step(); },
+  help(){ ui.layer = {type:"help"}; renderLayer(); },
+  scores(){ ui.layer = {type:"scores"}; renderLayer(); },
+  resetScores(){ ui.layer = {type:"confirm", msg:"Hapus semua skor di klasemen?", yes:"resetYes", yesLabel:"Hapus skor"}; renderLayer(); },
+  resetYes(){ scores = {}; LS.set("mm_scores",scores); ui.layer = {type:"scores"}; renderLayer(); },
+  quit(){ ui.layer = {type:"confirm", msg:"Akhiri ronde ini? Skor ronde ini tidak dihitung.", yes:"quitYes", yesLabel:"Akhiri ronde"}; renderLayer(); },
+  quitYes(){ stopTimer(); clearTimeout(seqT); G = null; saveGame(); ui.layer = null; render(); },
+  again(){ sfx.step(); newGame(); },
+  setup(){ G = null; saveGame(); render(); },
+  penalty(){ ui.layer = {type:"penalty", picks:{}}; renderLayer(); },
+  roll(){ rollPenalty(); },
+  reroll(el){ rollPenalty(+el.dataset.i); }
+};
+const QUIET = new Set(["start","dealNext","clueNext","skipClue","toVote","count","seat","open","giveUp","again","roll","reroll","mute"]);
+
+document.addEventListener("click", e=>{
+  const el = e.target.closest("[data-act]");
+  if(el){ if(el.disabled) return; const fn = A[el.dataset.act]; if(!fn) return; if(!QUIET.has(el.dataset.act)) sfx.tap(); fn(el); return; }
+  if(e.target.classList && e.target.classList.contains("layer") && e.target.hasAttribute("data-dismiss")) closeLayer();
+});
+document.addEventListener("submit", e=>{
+  if(!e.target.matches("[data-form=guess]")) return;
+  e.preventDefault();
+  const L = ui.layer, val = ($("#guess").value||"").trim();
+  if(!val){ toast("Tulis tebakannya dulu."); return; }
+  if(guessOk(val,G.civ)){ G.players[L.i].alive = false; finish("white"); }
+  else{ L.stage = "wrong"; L.guess = val; renderLayer(); sfx.wrong(); }
+});
+document.addEventListener("input", e=>{
+  const el = e.target;
+  if(el.dataset.name!=null){
+    const i = +el.dataset.name; cfg.names[i] = el.value; saveCfg();
+    const c = el.parentElement.querySelector(".chip"); if(c) c.textContent = chipLabel(pname(i),i);
+  } else if(el.dataset.bind){ cfg[el.dataset.bind] = el.value; saveCfg(); }
+});
+
+/* tahan untuk mengintip */
+let hold = null;
+function openHold(card){
+  if(hold) return;
+  hold = {card, t:Date.now()}; card.classList.add("is-open"); sfx.flip(); buzz(12);
+}
+function closeHold(){
+  if(!hold) return;
+  const {card,t} = hold; hold = null;
+  card.classList.remove("is-open"); sfx.shut();
+  if(Date.now()-t < 300){ toast("Tahan kartunya sebentar, jangan cuma diketuk."); return; }
+  if(card.dataset.hold==="deal" && G && G.phase==="deal" && !G.peeked){
+    G.peeked = true; saveGame();
+    const b = $("#dealBtn"); if(b){ b.disabled = false; b.textContent = dealLabel(); }
+  }
+}
+document.addEventListener("pointerdown", e=>{
+  const card = e.target.closest("[data-hold]"); if(!card) return;
+  e.preventDefault(); openHold(card);
+  try{ card.setPointerCapture(e.pointerId); }catch(_){}
+});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t, closeHold));
+window.addEventListener("blur", closeHold);
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden) closeHold(); });
+document.addEventListener("contextmenu", e=>{ if(e.target.closest("[data-hold]")) e.preventDefault(); });
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && ui.layer && ["help","scores","pick","peek","confirm","penalty"].includes(ui.layer.type)){ closeLayer(); return; }
+  if((e.key===" "||e.key==="Enter") && !e.repeat){ const c = e.target.closest && e.target.closest("[data-hold]"); if(c){ e.preventDefault(); openHold(c); } }
+});
+document.addEventListener("keyup", e=>{ if(e.key===" "||e.key==="Enter") closeHold(); });
+
+render();
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+</script>
+</body>
+</html>
