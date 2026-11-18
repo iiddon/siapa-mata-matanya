@@ -99,6 +99,9 @@ h2{font:800 18px/1.2 var(--body)}
 .names{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .name{display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:6px 10px 6px 6px;min-width:0}
 .name:focus-within{outline:2px solid var(--marigold)}
+.name .x{flex:none;width:30px;height:30px;margin:-4px -4px -4px 0;border:0;border-radius:50%;background:transparent;color:var(--soft);display:grid;place-items:center;padding:0}
+.name .x svg{width:16px;height:16px}
+.name .x:active{background:rgba(238,75,62,.25);color:#fff}
 .name input{flex:1;min-width:0;width:100%;background:none;border:0;outline:0;font-weight:600;font-size:16px;padding:5px 0}
 .name input::placeholder,.field::placeholder{color:rgba(255,243,217,.45);font-weight:500}
 .switch{flex:none;width:54px;height:32px;border-radius:999px;border:0;background:rgba(255,243,217,.2);position:relative;padding:0;transition:background .15s}
@@ -193,6 +196,7 @@ h2{font:800 18px/1.2 var(--body)}
 .tag.warga{background:#1F4F45;color:var(--mint)}
 .tag.mata{background:#5A2420;color:#FFA59C}
 .tag.white{background:#3F5557;color:#fff}
+.tag.left{background:rgba(255,243,217,.12);color:var(--soft)}
 .seat .tag{font-size:10.5px;padding:3px 6px}
 .status{font-size:14px;color:var(--soft);text-align:center}
 .actions{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-bottom:10px}
@@ -454,7 +458,7 @@ function bar({brand, exit, fan}={}){
 
 function vSetup(){
   const mx = maxInfil(cfg.n), infil = cfg.und + (cfg.white?1:0), civ = cfg.n - infil;
-  const names = Array.from({length:cfg.n},(_,i)=>`<label class="name">${chip(pname(i),i)}<input id="name${i}" data-name="${i}" value="${esc(cfg.names[i]||"")}" placeholder="Pemain ${i+1}" maxlength="10" autocomplete="off" aria-label="Nama pemain ${i+1}"></label>`).join("");
+  const names = Array.from({length:cfg.n},(_,i)=>`<label class="name">${chip(pname(i),i)}<input id="name${i}" data-name="${i}" value="${esc(cfg.names[i]||"")}" placeholder="Pemain ${i+1}" maxlength="10" autocomplete="off" aria-label="Nama pemain ${i+1}">${cfg.n>3?`<button type="button" class="x" data-act="removeName" data-i="${i}" aria-label="Hapus ${esc(pname(i))}">${I.close}</button>`:""}</label>`).join("");
   const cats = [["campur","Campur"],...Object.entries(WORDS).map(([k,v])=>[k,v.label]),["custom","Tulis sendiri"]]
     .map(([k,l])=>`<button class="choice" data-act="cat" data-v="${k}" aria-pressed="${cfg.cat===k}">${l}</button>`).join("");
   const timers = [[0,"Bebas"],[60,"1 menit"],[120,"2 menit"]]
@@ -470,7 +474,7 @@ function vSetup(){
     <div class="sec-head"><h2>Pemain</h2>
       <div class="stepper"><button data-act="nMinus" aria-label="Kurangi pemain" ${cfg.n<=3?"disabled":""}>−</button><output>${cfg.n}</output><button data-act="nPlus" aria-label="Tambah pemain" ${cfg.n>=12?"disabled":""}>+</button></div>
     </div>
-    <p class="note">Isi urut searah jarum jam, mulai dari yang pegang HP.</p>
+    <p class="note">Isi urut searah jarum jam, mulai dari yang pegang HP. Ketuk × untuk menghapus pemain yang tidak ikut lagi.</p>
     <div class="names">${names}</div>
   </section>
 
@@ -529,8 +533,8 @@ function vTable(){
   const seats = G.players.map((p,i)=>{
     const a = Math.PI/2 + i*2*Math.PI/n, x = 50+41*Math.cos(a), y = 50+43*Math.sin(a);
     const cls = [p.alive?"":"out", ph==="clue"&&G.turn===i?"turn":"", ph==="vote"&&G.selected===i?"sel":""].join(" ");
-    return `<button class="seat ${cls}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%" data-act="seat" data-i="${i}" ${ph==="vote"&&p.alive?"":"disabled"} aria-label="${esc(p.name)}${p.alive?"":", "+ROLE[p.role]+", gugur"}">
-      ${chip(p.name,i)}<span class="seat-name">${esc(p.name)}</span>${p.alive?"":`<span class="tag ${p.role}">${ROLE[p.role]}</span>`}</button>`;
+    return `<button class="seat ${cls}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%" data-act="seat" data-i="${i}" ${ph==="vote"&&p.alive?"":"disabled"} aria-label="${esc(p.name)}${p.alive?"":p.left?", keluar":", "+ROLE[p.role]+", gugur"}">
+      ${chip(p.name,i)}<span class="seat-name">${esc(p.name)}</span>${p.alive?"":p.left?`<span class="tag left">Keluar</span>`:`<span class="tag ${p.role}">${ROLE[p.role]}</span>`}</button>`;
   }).join("");
   const big = s => `<strong class="c-big ${s.length>7?"long":""}">${esc(s)}</strong>`;
   let center, actions;
@@ -538,13 +542,13 @@ function vTable(){
     const lastTurn = G.spoken+1 >= alive.length;
     center = `<span class="c-small">Putaran ${G.round}, giliran</span>${big(G.players[G.turn].name)}<span class="c-small">Sebut satu kata petunjuk</span>`;
     actions = `<button class="btn" data-act="clueNext">${lastTurn?"Semua sudah, lanjut diskusi":"Berikutnya: "+esc(G.players[nextAlive(G.turn)].name)}</button>
-      <div class="links">${lastTurn?"":`<button class="link" data-act="skipClue">Lewati ke diskusi</button>`}<button class="link" data-act="forgot">Lupa kata?</button></div>`;
+      <div class="links">${lastTurn?"":`<button class="link" data-act="skipClue">Lewati ke diskusi</button>`}<button class="link" data-act="forgot">Lupa kata?</button><button class="link" data-act="leave">Ada yang keluar?</button></div>`;
   } else if(ph==="discuss"){
     center = G.timer>0
       ? `<strong class="c-time ${G.timeLeft<=10?"low":""}" id="time">${fmt(G.timeLeft)}</strong><span class="c-small" id="timeNote">${G.timeLeft<=0?"Waktu habis. Saatnya voting.":"Diskusi. Siapa yang mencurigakan?"}</span>`
       : `${big("Diskusi")}<span class="c-small">Siapa yang mencurigakan?</span>`;
     actions = `<button class="btn" data-act="toVote">Mulai voting</button>
-      <div class="links">${G.timer>0?`<button class="link" data-act="addTime">Tambah 30 detik</button>`:""}<button class="link" data-act="forgot">Lupa kata?</button></div>`;
+      <div class="links">${G.timer>0?`<button class="link" data-act="addTime">Tambah 30 detik</button>`:""}<button class="link" data-act="forgot">Lupa kata?</button><button class="link" data-act="leave">Ada yang keluar?</button></div>`;
   } else {
     const sel = G.selected;
     center = sel==null
@@ -553,7 +557,7 @@ function vTable(){
     actions = (sel==null
       ? `<button class="btn" data-act="count">Hitung 3, 2, 1</button>`
       : `<button class="btn tomato" data-act="open">Buka kartu ${esc(G.players[sel].name)}</button>`)
-      + `<div class="links">${sel==null?"":`<button class="link" data-act="count">Hitung ulang</button>`}<button class="link" data-act="forgot">Lupa kata?</button></div>`;
+      + `<div class="links">${sel==null?"":`<button class="link" data-act="count">Hitung ulang</button>`}<button class="link" data-act="forgot">Lupa kata?</button><button class="link" data-act="leave">Ada yang keluar?</button></div>`;
   }
   return bar({brand:true, exit:true}) + `
   <ol class="phases">${["Petunjuk","Diskusi","Voting"].map((l,k)=>`<li class="${k===pi?"on":k<pi?"past":""}" ${k===pi?'aria-current="step"':""}>${l}</li>`).join("")}</ol>
@@ -569,12 +573,12 @@ function vTable(){
 
 function vEnd(){
   const w = G.winner;
-  const head = w==="warga" ? "Warga menang!" : w==="mata" ? "Mata-mata menang!" : "Mr. White menang!";
+  const head = w==="batal" ? "Ronde dibatalkan" : w==="warga" ? "Warga menang!" : w==="mata" ? "Mata-mata menang!" : "Mr. White menang!";
   const white = G.players.find(p=>p.role==="white");
-  const sub = w==="warga" ? `Semua penyusup tertangkap dalam ${G.round} putaran.`
+  const sub = w==="batal" ? (G.cancelNote||"Ronde ini tidak dihitung.") : w==="warga" ? `Semua penyusup tertangkap dalam ${G.round} putaran.`
             : w==="mata" ? "Penyusup bertahan sampai jumlahnya menyamai warga."
             : `${white?white.name:"Mr. White"} menebak kata warga dengan benar.`;
-  const losers = G.players.filter(p=>!G.award[p.name]);
+  const losers = G.players.filter(p=>!p.left && !G.award[p.name]);
   return `<canvas id="confetti" aria-hidden="true"></canvas>` + bar({brand:true}) + `
   <main class="end">
     <header class="stack" style="gap:8px"><h1 class="title">${head}</h1><p class="lede">${esc(sub)}</p></header>
@@ -582,10 +586,10 @@ function vEnd(){
       <figure>${cardHTML({face:{kind:"word",cap:"Warga",word:G.civ}, open:true, mini:true})}<figcaption>Kata warga</figcaption></figure>
       <figure>${cardHTML({face:{kind:"word",cap:"Mata-mata",word:G.und,tone:"mata"}, open:true, mini:true})}<figcaption>Kata mata-mata</figcaption></figure>
     </div>
-    <ul class="roster">${G.players.map((p,i)=>`<li>${chip(p.name,i)}<span class="nm">${esc(p.name)}</span><span class="tag ${p.role}">${ROLE[p.role]}</span><span class="pts ${G.award[p.name]?"":"zero"}">${G.award[p.name]?"+"+G.award[p.name]:"0"}</span></li>`).join("")}</ul>
+    <ul class="roster">${G.players.map((p,i)=>`<li>${chip(p.name,i)}<span class="nm">${esc(p.name)}</span>${p.left?`<span class="tag left">Keluar</span><span class="pts zero">–</span>`:`<span class="tag ${p.role}">${ROLE[p.role]}</span><span class="pts ${G.award[p.name]?"":"zero"}">${G.award[p.name]?"+"+G.award[p.name]:"0"}</span>`}</li>`).join("")}</ul>
     <div class="stack">
       <button class="btn" data-act="again">Main lagi</button>
-      ${losers.length?`<button class="btn quiet" data-act="penalty">Acak hukuman untuk yang kalah</button>`:""}
+      ${losers.length && w!=="batal"?`<button class="btn quiet" data-act="penalty">Acak hukuman untuk yang kalah</button>`:""}
       <button class="link" data-act="setup">Ubah pemain atau aturan</button>
     </div>
   </main>`;
@@ -643,10 +647,13 @@ function vLayer(L){
       ${cardHTML({seat:L.i, face:{kind:"role",role:p.role,name:p.name}, open:shown})}<div class="foot">${revealFoot(L)}</div></div>`;
   }
   if(L.type==="count") return `<div class="layer still" aria-live="assertive"><div class="count">${L.text}</div></div>`;
+  if(L.type==="leave") return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Pemain keluar">${head("Siapa yang keluar?")}
+    <p class="note">Perannya tidak dibuka. Namanya dihapus dari daftar pemain dan semua poinnya di klasemen ikut dihapus.</p>
+    <div class="picks">${G.players.map((p,i)=>p.alive?`<button class="pick" data-act="leavePick" data-i="${i}">${chip(p.name,i)}<span>${esc(p.name)}</span></button>`:"").join("")}</div></div></div>`;
   if(L.type==="confirm") return `<div class="layer bottom" data-dismiss><div class="sheet" role="alertdialog" aria-label="Konfirmasi"><p class="verdict">${esc(L.msg)}</p>
     <button class="btn tomato" data-act="${L.yes}">${esc(L.yesLabel)}</button><button class="btn quiet" data-act="closeLayer">Batal</button></div></div>`;
   if(L.type==="penalty"){
-    const losers = G.players.map((p,i)=>i).filter(i=>!G.award[G.players[i].name]);
+    const losers = G.players.map((p,i)=>i).filter(i=>!G.players[i].left && !G.award[G.players[i].name]);
     const picks = L.picks || {}, any = Object.keys(picks).length>0;
     return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Hukuman">${head("Hukuman")}
       <p class="note">Tiap yang kalah dapat hukuman sendiri. Kalau ada yang tidak bisa dilakukan, ketuk Ganti.</p>
@@ -790,14 +797,37 @@ function afterReveal(){
   if(civ<=inf) return finish("mata");
   startRound(false);
 }
+function purgePlayer(name){
+  const key = name.trim().toLowerCase();
+  const idx = Array.from({length:cfg.n},(_,i)=>pname(i).toLowerCase()).indexOf(key);
+  if(idx>=0 && cfg.n>3){ cfg.names.splice(idx,1); cfg.n--; fixCfg(); saveCfg(); }
+  if(name in scores){ delete scores[name]; LS.set("mm_scores",scores); }
+  const H = LS.get("mm_hist",null); if(H && H.p && H.p[key]){ delete H.p[key]; LS.set("mm_hist",H); }
+}
+function playerLeaves(i){
+  const p = G.players[i]; if(!p || !p.alive) return;
+  p.alive = false; p.left = true;
+  if(G.selected===i) G.selected = null;
+  purgePlayer(p.name);
+  ui.layer = null;
+  const alive = G.players.filter(q=>q.alive), inf = alive.filter(q=>q.role!=="warga").length, civ = alive.length-inf;
+  if(inf===0){ G.cancelNote = `${p.name} keluar dan dia ternyata penyusup terakhir. Tidak ada poin di ronde ini.`; return finish("batal"); }
+  if(alive.length<3){ G.cancelNote = "Pemain tersisa kurang dari 3. Tidak ada poin di ronde ini."; return finish("batal"); }
+  if(civ<=inf) return finish("mata");
+  if(G.phase==="clue" && G.turn===i){ G.turn = nextAlive(i); }
+  if(G.phase==="clue" && G.spoken>=alive.length) return toDiscuss();
+  saveGame(); render(); toast(`${p.name} keluar. Poinnya sudah dihapus.`);
+}
 function finish(w){
   stopTimer();
   G.winner = w; G.phase = "end"; G.award = {};
   G.players.forEach(p=>{
+    if(p.left) return;
     const pts = w==="warga" ? (p.role==="warga"?2:0) : w==="mata" ? (p.role!=="warga"?4:0) : (p.role==="white"?6:0);
     G.award[p.name] = pts; scores[p.name] = (scores[p.name]||0)+pts;
   });
   LS.set("mm_scores",scores); ui.layer = null; saveGame(); render();
+  if(w==="batal"){ sfx.wrong(); return; }
   sfx.win(); buzz([80,60,80,60,220]); confetti();
 }
 function confetti(){
@@ -825,7 +855,7 @@ function drawPen(avoid){
 function rollPenalty(only){
   const L = ui.layer; if(!L || L.type!=="penalty" || rolling) return;
   L.picks = L.picks || {};
-  const losers = G.players.map((p,i)=>i).filter(i=>!G.award[G.players[i].name]);
+  const losers = G.players.map((p,i)=>i).filter(i=>!G.players[i].left && !G.award[G.players[i].name]);
   const targets = only!=null ? [only] : losers;
   const avoid = Object.values(L.picks);
   targets.forEach(i=>{ const k = drawPen(avoid); avoid.push(k); L.picks[i] = k; });
@@ -879,6 +909,13 @@ const A = {
   resetScores(){ ui.layer = {type:"confirm", msg:"Hapus semua skor di klasemen?", yes:"resetYes", yesLabel:"Hapus skor"}; renderLayer(); },
   resetYes(){ scores = {}; LS.set("mm_scores",scores); ui.layer = {type:"scores"}; renderLayer(); },
   quit(){ ui.layer = {type:"confirm", msg:"Akhiri ronde ini? Skor ronde ini tidak dihitung.", yes:"quitYes", yesLabel:"Akhiri ronde"}; renderLayer(); },
+  removeName(el){ const i = +el.dataset.i; ui.removeIdx = i; const nm = pname(i); const pts = scores[nm];
+    ui.layer = {type:"confirm", msg:`Hapus ${nm} dari daftar pemain?${pts?` ${pts} poinnya di klasemen ikut dihapus.`:""}`, yes:"removeYes", yesLabel:`Hapus ${nm}`}; renderLayer(); },
+  removeYes(){ const i = ui.removeIdx; if(i==null) return; const nm = pname(i); purgePlayer(nm); ui.removeIdx = null; ui.layer = null; ui.err = ""; render(); toast(`${nm} dihapus.`); },
+  leave(){ ui.layer = {type:"leave"}; renderLayer(); },
+  leavePick(el){ const i = +el.dataset.i; ui.leaveIdx = i; const nm = G.players[i].name;
+    ui.layer = {type:"confirm", msg:`${nm} keluar dari permainan? Perannya tidak dibuka, dan semua poinnya di klasemen dihapus.`, yes:"leaveYes", yesLabel:`Ya, ${nm} keluar`}; renderLayer(); },
+  leaveYes(){ const i = ui.leaveIdx; ui.leaveIdx = null; if(i!=null) playerLeaves(i); },
   quitYes(){ stopTimer(); clearTimeout(seqT); G = null; saveGame(); ui.layer = null; render(); },
   again(){ sfx.step(); newGame(); },
   setup(){ G = null; saveGame(); render(); },
@@ -935,7 +972,7 @@ window.addEventListener("blur", closeHold);
 document.addEventListener("visibilitychange", ()=>{ if(document.hidden) closeHold(); });
 document.addEventListener("contextmenu", e=>{ if(e.target.closest("[data-hold]")) e.preventDefault(); });
 document.addEventListener("keydown", e=>{
-  if(e.key==="Escape" && ui.layer && ["help","scores","pick","peek","confirm","penalty"].includes(ui.layer.type)){ closeLayer(); return; }
+  if(e.key==="Escape" && ui.layer && ["help","scores","pick","peek","confirm","penalty","leave"].includes(ui.layer.type)){ closeLayer(); return; }
   if((e.key===" "||e.key==="Enter") && !e.repeat){ const c = e.target.closest && e.target.closest("[data-hold]"); if(c){ e.preventDefault(); openHold(c); } }
 });
 document.addEventListener("keyup", e=>{ if(e.key===" "||e.key==="Enter") closeHold(); });
