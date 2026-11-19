@@ -482,7 +482,7 @@ function vSetup(){
     <div class="row"><div><h2>Mata-mata</h2><p class="note">Dapat kata yang mirip, dan tidak tahu dirinya mata-mata.</p></div>
       <div class="stepper"><button data-act="uMinus" aria-label="Kurangi mata-mata" ${cfg.und<=1?"disabled":""}>−</button><output>${cfg.und}</output><button data-act="uPlus" aria-label="Tambah mata-mata" ${infil+1>mx?"disabled":""}>+</button></div>
     </div>
-    <div class="row"><div><b>Mr. White</b><p class="note">${whiteBlocked?"Tambah pemain dulu untuk memakai Mr. White.":"Kartunya kosong. Kalau tertangkap, dia boleh menebak kata warga."}</p></div>
+    <div class="row"><div><b>Mr. White</b><p class="note">${whiteBlocked?"Tambah pemain dulu untuk memakai Mr. White.":"Kartunya kosong. Kalau tertangkap dan berhasil menebak kata warga, dia dapat 4 poin."}</p></div>
       <button class="switch" role="switch" aria-checked="${cfg.white}" aria-label="Mr. White" data-act="white" ${whiteBlocked?"disabled":""}></button>
     </div>
   </section>
@@ -578,10 +578,11 @@ function vEnd(){
   const sub = w==="batal" ? (G.cancelNote||"Ronde ini tidak dihitung.") : w==="warga" ? `Semua penyusup tertangkap dalam ${G.round} putaran.`
             : w==="mata" ? "Penyusup bertahan sampai jumlahnya menyamai warga."
             : `${white?white.name:"Mr. White"} menebak kata warga dengan benar.`;
-  const losers = G.players.filter(p=>!p.left && !G.award[p.name]);
+  const bonusNote = w!=="white" && w!=="batal" && G.bonus && Object.keys(G.bonus).length ? ` ${Object.keys(G.bonus).join(", ")} dapat 4 poin dari tebakan benar.` : "";
+  const loser = G.loser!=null ? G.players[G.loser] : null;
   return `<canvas id="confetti" aria-hidden="true"></canvas>` + bar({brand:true}) + `
   <main class="end">
-    <header class="stack" style="gap:8px"><h1 class="title">${head}</h1><p class="lede">${esc(sub)}</p></header>
+    <header class="stack" style="gap:8px"><h1 class="title">${head}</h1><p class="lede">${esc(sub+bonusNote)}</p></header>
     <div class="pair">
       <figure>${cardHTML({face:{kind:"word",cap:"Warga",word:G.civ}, open:true, mini:true})}<figcaption>Kata warga</figcaption></figure>
       <figure>${cardHTML({face:{kind:"word",cap:"Mata-mata",word:G.und,tone:"mata"}, open:true, mini:true})}<figcaption>Kata mata-mata</figcaption></figure>
@@ -589,7 +590,7 @@ function vEnd(){
     <ul class="roster">${G.players.map((p,i)=>`<li>${chip(p.name,i)}<span class="nm">${esc(p.name)}</span>${p.left?`<span class="tag left">Keluar</span><span class="pts zero">–</span>`:`<span class="tag ${p.role}">${ROLE[p.role]}</span><span class="pts ${G.award[p.name]?"":"zero"}">${G.award[p.name]?"+"+G.award[p.name]:"0"}</span>`}</li>`).join("")}</ul>
     <div class="stack">
       <button class="btn" data-act="again">Main lagi</button>
-      ${losers.length && w!=="batal"?`<button class="btn quiet" data-act="penalty">Acak hukuman untuk yang kalah</button>`:""}
+      ${loser?`<button class="btn quiet" data-act="penalty">Acak hukuman untuk ${esc(loser.name)}</button>`:""}
       <button class="link" data-act="setup">Ubah pemain atau aturan</button>
     </div>
   </main>`;
@@ -607,6 +608,8 @@ function render(){
 function revealFoot(L){
   const p = G.players[L.i];
   if(L.stage==="suspense") return `<p class="hint">Membuka kartu…</p>`;
+  if(L.stage==="whiteWin"){ const more = G.players.some((q,k)=>k!==L.i && q.alive && q.role==="mata");
+    return `<p class="verdict">Tebakan “${esc(L.guess)}” benar! ${esc(p.name)} dapat 4 poin.${more?" Permainan lanjut antara warga dan mata-mata.":""}</p><button class="btn" data-act="revealNext">Lanjut</button>`; }
   if(L.stage==="wrong") return `<p class="verdict">${L.guess?`Tebakan “${esc(L.guess)}” salah.`:"Mr. White menyerah."} Dia gugur.</p><button class="btn" data-act="revealNext">Lanjut</button>`;
   if(p.role==="white") return `<p class="verdict">Mr. White tertangkap. Satu kesempatan: tebak kata warga.</p>
     <form class="guess" data-form="guess"><input class="field" id="guess" placeholder="Tebakan ${esc(p.name)}" maxlength="24" autocomplete="off" autocapitalize="off" aria-label="Tebakan kata warga"><button class="btn" type="submit">Tebak</button></form>
@@ -623,9 +626,15 @@ function vLayer(L){
       <li>Diskusi, lalu tunjuk bareng di hitungan ketiga. Pemain dengan suara terbanyak membuka kartunya.</li>
       <li>Warga menang kalau semua penyusup gugur. Penyusup menang kalau jumlahnya menyamai warga.</li>
     </ol>
-    <p class="note">Mr. White memegang kartu kosong. Kalau tertangkap, dia menang dengan menebak kata warga.</p>
+    <p class="note">Mr. White memegang kartu kosong. Kalau tertangkap, dia boleh menebak kata warga. Tebakan benar memberinya 4 poin, lalu permainan lanjut antara warga dan mata-mata.</p>
     <p class="note">Peran diacak ulang setiap ronde. Yang baru saja jadi penyusup jarang kebagian lagi di ronde berikutnya.</p>
-    <p class="note">Skor per ronde: warga menang +2, penyusup menang +4, Mr. White menebak benar +6.</p></div></div>`;
+    <p class="note">Poin di akhir ronde:</p>
+    <ul class="steps" style="list-style:disc">
+      <li>Warga menang: warga yang masih bertahan +2, warga yang salah dituduh +1.</li>
+      <li>Mata-mata menang: mata-mata dan Mr. White yang belum ketahuan +2. Yang sudah ketahuan tidak dapat poin.</li>
+      <li>Mr. White menebak kata warga dengan benar: +4.</li>
+    </ul>
+    <p class="note">Hukuman hanya untuk satu pemain dengan total poin terendah di klasemen. Kalau seri, diundi.</p></div></div>`;
   if(L.type==="scores"){
     const rows = Object.entries(scores).sort((a,b)=>b[1]-a[1]), top = Math.max(1,...rows.map(r=>r[1]));
     return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Klasemen">${head("Klasemen")}
@@ -653,14 +662,14 @@ function vLayer(L){
   if(L.type==="confirm") return `<div class="layer bottom" data-dismiss><div class="sheet" role="alertdialog" aria-label="Konfirmasi"><p class="verdict">${esc(L.msg)}</p>
     <button class="btn tomato" data-act="${L.yes}">${esc(L.yesLabel)}</button><button class="btn quiet" data-act="closeLayer">Batal</button></div></div>`;
   if(L.type==="penalty"){
-    const losers = G.players.map((p,i)=>i).filter(i=>!G.players[i].left && !G.award[G.players[i].name]);
-    const picks = L.picks || {}, any = Object.keys(picks).length>0;
+    const losers = G.loser!=null ? [G.loser] : [];
+    const picks = L.picks || {}, any = Object.keys(picks).length>0, lp = G.loser!=null ? G.players[G.loser] : null;
     return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Hukuman">${head("Hukuman")}
-      <p class="note">Tiap yang kalah dapat hukuman sendiri. Kalau ada yang tidak bisa dilakukan, ketuk Ganti.</p>
+      <p class="note">${lp?`${esc(lp.name)} punya poin paling rendah di klasemen (${scores[lp.name]||0} poin)${G.loserTie?", seri dengan pemain lain lalu diundi":""}.`:""} Kalau hukumannya tidak bisa dilakukan, ketuk Ganti.</p>
       <ul class="pens">${losers.map(i=>{ const p = G.players[i], P = picks[i]!=null ? PENALTIES[picks[i]] : null;
         return `<li><div class="pen-who">${chip(p.name,i)}<b>${esc(p.name)}</b>${P?`<button class="link" data-act="reroll" data-i="${i}">Ganti</button>`:""}</div>
         <div class="pen" id="pen${i}">${P?penHTML(P):"?"}</div></li>`; }).join("")}</ul>
-      <button class="btn" id="rollBtn" data-act="roll">${any?"Acak ulang semua":"Acak hukuman"}</button></div></div>`;
+      <button class="btn" id="rollBtn" data-act="roll">${any?"Acak ulang":"Acak hukuman"}</button></div></div>`;
   }
   return "";
 }
@@ -791,9 +800,10 @@ function lev(a,b){
 function guessOk(g,w){ g = norm(g); w = norm(w); return !!g && (g===w || (w.length>=5 && lev(g,w)<=1)); }
 function afterReveal(){
   const L = ui.layer; if(!L || L.type!=="reveal") return;
+  const whiteWon = L.stage==="whiteWin";
   G.players[L.i].alive = false; G.selected = null; ui.layer = null;
   const alive = G.players.filter(p=>p.alive), inf = alive.filter(p=>p.role!=="warga").length, civ = alive.length-inf;
-  if(inf===0) return finish("warga");
+  if(inf===0) return finish(whiteWon ? "white" : "warga");
   if(civ<=inf) return finish("mata");
   startRound(false);
 }
@@ -823,9 +833,18 @@ function finish(w){
   G.winner = w; G.phase = "end"; G.award = {};
   G.players.forEach(p=>{
     if(p.left) return;
-    const pts = w==="warga" ? (p.role==="warga"?2:0) : w==="mata" ? (p.role!=="warga"?4:0) : (p.role==="white"?6:0);
+    let pts = 0;
+    if(w==="warga" && p.role==="warga") pts = p.alive ? 2 : 1;
+    if(w==="mata" && p.role!=="warga" && p.alive) pts = 2;
+    if(w!=="batal") pts += (G.bonus||{})[p.name] || 0;
     G.award[p.name] = pts; scores[p.name] = (scores[p.name]||0)+pts;
   });
+  // yang kena hukuman: satu pemain dengan total poin terendah di klasemen (seri diundi)
+  const inGame = G.players.map((p,i)=>i).filter(i=>!G.players[i].left);
+  const low = Math.min(...inGame.map(i=>scores[G.players[i].name]||0));
+  const tied = inGame.filter(i=>(scores[G.players[i].name]||0)===low);
+  G.loser = w==="batal" || !tied.length ? null : tied[rand(tied.length)];
+  G.loserTie = tied.length>1;
   LS.set("mm_scores",scores); ui.layer = null; saveGame(); render();
   if(w==="batal"){ sfx.wrong(); return; }
   sfx.win(); buzz([80,60,80,60,220]); confetti();
@@ -855,7 +874,7 @@ function drawPen(avoid){
 function rollPenalty(only){
   const L = ui.layer; if(!L || L.type!=="penalty" || rolling) return;
   L.picks = L.picks || {};
-  const losers = G.players.map((p,i)=>i).filter(i=>!G.players[i].left && !G.award[G.players[i].name]);
+  const losers = G.loser!=null ? [G.loser] : [];
   const targets = only!=null ? [only] : losers;
   const avoid = Object.values(L.picks);
   targets.forEach(i=>{ const k = drawPen(avoid); avoid.push(k); L.picks[i] = k; });
@@ -935,7 +954,7 @@ document.addEventListener("submit", e=>{
   e.preventDefault();
   const L = ui.layer, val = ($("#guess").value||"").trim();
   if(!val){ toast("Tulis tebakannya dulu."); return; }
-  if(guessOk(val,G.civ)){ G.players[L.i].alive = false; finish("white"); }
+  if(guessOk(val,G.civ)){ const nm = G.players[L.i].name; G.bonus = G.bonus || {}; G.bonus[nm] = 4; saveGame(); L.stage = "whiteWin"; L.guess = val; renderLayer(); sfx.caught(); buzz(140); }
   else{ L.stage = "wrong"; L.guess = val; renderLayer(); sfx.wrong(); }
 });
 document.addEventListener("input", e=>{
