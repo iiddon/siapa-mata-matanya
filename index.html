@@ -249,6 +249,13 @@ h2{font:800 18px/1.2 var(--body)}
 .roster .nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .roster .pts{min-width:28px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
 .roster .pts.zero{color:var(--soft);font-weight:600}
+.roster .nm small{display:block;font-weight:500;font-size:12.5px;color:var(--soft);font-variant-numeric:tabular-nums}
+.finals{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+.finals li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--field)}
+.finals li.low{background:rgba(238,75,62,.22);box-shadow:inset 0 0 0 1.5px var(--tomato)}
+.finals .rank{width:20px;color:var(--soft);font-weight:700;font-variant-numeric:tabular-nums}
+.finals .nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.finals .pt{font-weight:800;font-variant-numeric:tabular-nums}
 
 #toast{position:fixed;left:50%;bottom:22px;z-index:40;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--paper);color:var(--ink);font:700 14px/1.35 var(--body);padding:11px 16px;border-radius:12px;max-width:min(92vw,400px);text-align:center;transition:opacity .2s,transform .2s}
 #toast.on{opacity:1;transform:translate(-50%,0)}
@@ -579,7 +586,6 @@ function vEnd(){
             : w==="mata" ? "Penyusup bertahan sampai jumlahnya menyamai warga."
             : `${white?white.name:"Mr. White"} menebak kata warga dengan benar.`;
   const bonusNote = w!=="white" && w!=="batal" && G.bonus && Object.keys(G.bonus).length ? ` ${Object.keys(G.bonus).join(", ")} dapat 4 poin dari tebakan benar.` : "";
-  const loser = G.loser!=null ? G.players[G.loser] : null;
   return `<canvas id="confetti" aria-hidden="true"></canvas>` + bar({brand:true}) + `
   <main class="end">
     <header class="stack" style="gap:8px"><h1 class="title">${head}</h1><p class="lede">${esc(sub+bonusNote)}</p></header>
@@ -587,10 +593,10 @@ function vEnd(){
       <figure>${cardHTML({face:{kind:"word",cap:"Warga",word:G.civ}, open:true, mini:true})}<figcaption>Kata warga</figcaption></figure>
       <figure>${cardHTML({face:{kind:"word",cap:"Mata-mata",word:G.und,tone:"mata"}, open:true, mini:true})}<figcaption>Kata mata-mata</figcaption></figure>
     </div>
-    <ul class="roster">${G.players.map((p,i)=>`<li>${chip(p.name,i)}<span class="nm">${esc(p.name)}</span>${p.left?`<span class="tag left">Keluar</span><span class="pts zero">–</span>`:`<span class="tag ${p.role}">${ROLE[p.role]}</span><span class="pts ${G.award[p.name]?"":"zero"}">${G.award[p.name]?"+"+G.award[p.name]:"0"}</span>`}</li>`).join("")}</ul>
+    <ul class="roster">${G.players.map((p,i)=>`<li>${chip(p.name,i)}<span class="nm">${esc(p.name)}${p.left?"":`<small>Total ${scores[p.name]||0}</small>`}</span>${p.left?`<span class="tag left">Keluar</span><span class="pts zero">–</span>`:`<span class="tag ${p.role}">${ROLE[p.role]}</span><span class="pts ${G.award[p.name]?"":"zero"}">${G.award[p.name]?"+"+G.award[p.name]:"0"}</span>`}</li>`).join("")}</ul>
     <div class="stack">
       <button class="btn" data-act="again">Main lagi</button>
-      ${loser?`<button class="btn quiet" data-act="penalty">Acak hukuman untuk ${esc(loser.name)}</button>`:""}
+      <button class="btn quiet" data-act="final">Selesai main, lihat total poin</button>
       <button class="link" data-act="setup">Ubah pemain atau aturan</button>
     </div>
   </main>`;
@@ -634,7 +640,7 @@ function vLayer(L){
       <li>Mata-mata menang: mata-mata dan Mr. White yang belum ketahuan +2. Yang sudah ketahuan tidak dapat poin.</li>
       <li>Mr. White menebak kata warga dengan benar: +4.</li>
     </ul>
-    <p class="note">Hukuman hanya untuk satu pemain dengan total poin terendah di klasemen. Kalau seri, diundi.</p></div></div>`;
+    <p class="note">Poin dijumlahkan dari semua ronde. Setelah selesai main, ketuk "Selesai main, lihat total poin". Hukuman hanya untuk satu pemain dengan total poin terendah. Kalau seri, diundi.</p></div></div>`;
   if(L.type==="scores"){
     const rows = Object.entries(scores).sort((a,b)=>b[1]-a[1]), top = Math.max(1,...rows.map(r=>r[1]));
     return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Klasemen">${head("Klasemen")}
@@ -659,13 +665,23 @@ function vLayer(L){
   if(L.type==="leave") return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Pemain keluar">${head("Siapa yang keluar?")}
     <p class="note">Perannya tidak dibuka. Namanya dihapus dari daftar pemain dan semua poinnya di klasemen ikut dihapus.</p>
     <div class="picks">${G.players.map((p,i)=>p.alive?`<button class="pick" data-act="leavePick" data-i="${i}">${chip(p.name,i)}<span>${esc(p.name)}</span></button>`:"").join("")}</div></div></div>`;
+  if(L.type==="final"){
+    const rows = G.players.map((p,i)=>({p,i})).filter(o=>!o.p.left).sort((a,b)=>(scores[b.p.name]||0)-(scores[a.p.name]||0));
+    const lp = G.loser!=null ? G.players[G.loser] : null;
+    return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Hasil akhir">${head("Total poin sesi ini")}
+      <ol class="finals">${rows.map((o,k)=>`<li class="${o.i===G.loser?"low":""}"><span class="rank">${k+1}</span>${chip(o.p.name,o.i)}<span class="nm">${esc(o.p.name)}</span><span class="pt">${scores[o.p.name]||0}</span></li>`).join("")}</ol>
+      ${lp?`<p class="note">${esc(lp.name)} punya total poin paling rendah${G.loserTie?" (seri, lalu diundi)":""}, jadi dia yang kena hukuman.</p>
+      <button class="btn" data-act="penalty">Acak hukuman untuk ${esc(lp.name)}</button>`:""}
+      <button class="btn quiet" data-act="newSession">Mulai sesi baru</button>
+      <button class="link" data-act="closeLayer">Lanjut main dulu</button></div></div>`;
+  }
   if(L.type==="confirm") return `<div class="layer bottom" data-dismiss><div class="sheet" role="alertdialog" aria-label="Konfirmasi"><p class="verdict">${esc(L.msg)}</p>
     <button class="btn tomato" data-act="${L.yes}">${esc(L.yesLabel)}</button><button class="btn quiet" data-act="closeLayer">Batal</button></div></div>`;
   if(L.type==="penalty"){
     const losers = G.loser!=null ? [G.loser] : [];
     const picks = L.picks || {}, any = Object.keys(picks).length>0, lp = G.loser!=null ? G.players[G.loser] : null;
     return `<div class="layer bottom" data-dismiss><div class="sheet" role="dialog" aria-label="Hukuman">${head("Hukuman")}
-      <p class="note">${lp?`${esc(lp.name)} punya poin paling rendah di klasemen (${scores[lp.name]||0} poin)${G.loserTie?", seri dengan pemain lain lalu diundi":""}.`:""} Kalau hukumannya tidak bisa dilakukan, ketuk Ganti.</p>
+      <p class="note">${lp?`${esc(lp.name)} punya total poin paling rendah selama sesi ini (${scores[lp.name]||0} poin)${G.loserTie?", seri dengan pemain lain lalu diundi":""}.`:""} Kalau hukumannya tidak bisa dilakukan, ketuk Ganti.</p>
       <ul class="pens">${losers.map(i=>{ const p = G.players[i], P = picks[i]!=null ? PENALTIES[picks[i]] : null;
         return `<li><div class="pen-who">${chip(p.name,i)}<b>${esc(p.name)}</b>${P?`<button class="link" data-act="reroll" data-i="${i}">Ganti</button>`:""}</div>
         <div class="pen" id="pen${i}">${P?penHTML(P):"?"}</div></li>`; }).join("")}</ul>
@@ -839,12 +855,7 @@ function finish(w){
     if(w!=="batal") pts += (G.bonus||{})[p.name] || 0;
     G.award[p.name] = pts; scores[p.name] = (scores[p.name]||0)+pts;
   });
-  // yang kena hukuman: satu pemain dengan total poin terendah di klasemen (seri diundi)
-  const inGame = G.players.map((p,i)=>i).filter(i=>!G.players[i].left);
-  const low = Math.min(...inGame.map(i=>scores[G.players[i].name]||0));
-  const tied = inGame.filter(i=>(scores[G.players[i].name]||0)===low);
-  G.loser = w==="batal" || !tied.length ? null : tied[rand(tied.length)];
-  G.loserTie = tied.length>1;
+  G.loser = null; G.loserTie = false;
   LS.set("mm_scores",scores); ui.layer = null; saveGame(); render();
   if(w==="batal"){ sfx.wrong(); return; }
   sfx.win(); buzz([80,60,80,60,220]); confetti();
@@ -939,6 +950,16 @@ const A = {
   again(){ sfx.step(); newGame(); },
   setup(){ G = null; saveGame(); render(); },
   penalty(){ ui.layer = {type:"penalty", picks:{}}; renderLayer(); },
+  final(){
+    const inGame = G.players.map((p,i)=>i).filter(i=>!G.players[i].left);
+    const low = Math.min(...inGame.map(i=>scores[G.players[i].name]||0));
+    const tied = inGame.filter(i=>(scores[G.players[i].name]||0)===low);
+    if(G.loser==null || !tied.includes(G.loser)){ G.loser = tied.length ? tied[rand(tied.length)] : null; }
+    G.loserTie = tied.length>1; saveGame();
+    ui.layer = {type:"final"}; renderLayer();
+  },
+  newSession(){ ui.layer = {type:"confirm", msg:"Mulai sesi baru? Semua total poin dihapus. Nama pemain tetap tersimpan.", yes:"newSessionYes", yesLabel:"Hapus poin, mulai baru"}; renderLayer(); },
+  newSessionYes(){ scores = {}; LS.set("mm_scores",scores); G = null; saveGame(); ui.layer = null; render(); toast("Sesi baru dimulai. Semua poin kembali 0."); },
   roll(){ rollPenalty(); },
   reroll(el){ rollPenalty(+el.dataset.i); }
 };
@@ -991,7 +1012,7 @@ window.addEventListener("blur", closeHold);
 document.addEventListener("visibilitychange", ()=>{ if(document.hidden) closeHold(); });
 document.addEventListener("contextmenu", e=>{ if(e.target.closest("[data-hold]")) e.preventDefault(); });
 document.addEventListener("keydown", e=>{
-  if(e.key==="Escape" && ui.layer && ["help","scores","pick","peek","confirm","penalty","leave"].includes(ui.layer.type)){ closeLayer(); return; }
+  if(e.key==="Escape" && ui.layer && ["help","scores","pick","peek","confirm","penalty","leave","final"].includes(ui.layer.type)){ closeLayer(); return; }
   if((e.key===" "||e.key==="Enter") && !e.repeat){ const c = e.target.closest && e.target.closest("[data-hold]"); if(c){ e.preventDefault(); openHold(c); } }
 });
 document.addEventListener("keyup", e=>{ if(e.key===" "||e.key==="Enter") closeHold(); });
