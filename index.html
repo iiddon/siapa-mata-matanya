@@ -56,8 +56,11 @@ h1,h2,p,ol,ul,figure{margin:0}
 /* ---------- bar ---------- */
 .bar{display:flex;align-items:center;gap:8px;min-height:44px}
 .bar.tall{align-items:flex-start}
-.brand{font:400 19px/1 var(--display);margin-right:auto;white-space:nowrap}
-.bar-btns{display:flex;gap:8px;margin-left:auto}
+.brand{flex:1 1 auto;min-width:0;font:400 19px/1.1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b-short{display:none}
+@media (max-width:460px){.b-full{display:none}.b-short{display:inline}}
+@media (max-width:385px){.brand{font-size:16px}.bar-btns{gap:6px}.icon{width:36px;height:36px}}
+.bar-btns{display:flex;gap:8px;margin-left:auto;flex:none}
 .icon{width:40px;height:40px;border-radius:50%;border:0;background:var(--field);display:grid;place-items:center;padding:0}
 .icon svg{width:20px;height:20px}
 
@@ -484,7 +487,7 @@ const secretFace = p => p.role==="white" ? {kind:"blank"} : {kind:"word", word:p
 function bar({brand, exit, fan}={}){
   return `<div class="bar ${fan?"tall":""}">
     ${fan?`<div class="fan" aria-hidden="true"><i>Kopi</i><i>Kopi</i><i>Teh</i></div>`:""}
-    ${brand?`<span class="brand">Siapa Mata-matanya?</span>`:""}
+    ${brand?`<span class="brand" aria-label="Siapa Mata-matanya?"><span class="b-full">Siapa Mata-matanya?</span><span class="b-short">Mata-matanya?</span></span>`:""}
     <span class="bar-btns">
       <button class="icon" data-act="mute" aria-label="${muted?"Nyalakan suara":"Matikan suara"}">${muted?I.mute:I.sound}</button>
       <button class="icon" data-act="help" aria-label="Cara main">${I.help}</button>
