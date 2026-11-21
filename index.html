@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Shrikhand&display=swap" rel="stylesheet">
 <style>
+html{--vw:1vw;--vh:1vh}
 :root{
   /* Tata letak: satu kolom selebar HP. Meja kartu oval dengan kursi melingkar jadi pusat permainan,
      kartu rahasia jadi satu-satunya elemen yang mencolok. Satu tema gelap supaya layar tidak silau ke tetangga. */
@@ -83,7 +84,7 @@ h1,h2,p,ol,ul,figure{margin:0}
   display:grid;place-items:start center;padding-top:14px;font:400 15px/1 var(--display);font-style:normal;transform-origin:50% 150%;box-shadow:0 6px 14px rgba(0,0,0,.35)}
 .fan i:nth-child(1){transform:rotate(-30deg)}
 .fan i:nth-child(3){transform:rotate(30deg);background:var(--tomato);color:var(--paper)}
-.title{font:400 clamp(34px,10.6vw,48px)/1.02 var(--display)}
+.title{font:400 clamp(34px,calc(var(--vw)*10.6),48px)/1.02 var(--display)}
 .nb{white-space:nowrap}
 .hero{padding:8px 0 22px;display:flex;flex-direction:column;gap:10px}
 .lede{color:var(--soft);max-width:32ch}
@@ -120,7 +121,7 @@ h2{font:800 18px/1.2 var(--body)}
 .err{font-size:14px;font-weight:600;color:#FFB4AB;text-align:center}
 
 /* ---------- kartu ---------- */
-.card{--w:min(68vw,264px,42vh);--u:calc(var(--w) / 100);position:relative;width:var(--w);height:calc(var(--w) * 1.4);flex:none}
+.card{--w:max(150px,min(calc(var(--vw)*68),264px,calc((var(--vh)*100 - 330px) / 1.4)));--u:calc(var(--w) / 100);position:relative;width:var(--w);height:calc(var(--w) * 1.4);flex:none}
 .card[data-hold]{cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border-radius:16px}
 .card-inner{position:absolute;inset:0}
 .card-back{transform:perspective(900px) rotateY(0deg);transition:transform .17s ease-out .17s}
@@ -172,7 +173,7 @@ h2{font:800 18px/1.2 var(--body)}
 .phases li.on{background:var(--paper);color:var(--ink)}
 .phases li.on::before{background:var(--ink);color:var(--paper)}
 .phases li.past{color:var(--mint)}
-.table-wrap{--s:52px;position:relative;width:min(100%,400px,50vh);aspect-ratio:10/11;margin:16px auto 30px}
+.table-wrap{--s:52px;position:relative;width:max(250px,min(100%,400px,calc((var(--vh)*100 - 320px) / 1.1)));aspect-ratio:10/11;margin:16px auto 30px}
 .table-wrap.n-mid{--s:46px}
 .table-wrap.n-big{--s:40px}
 .table{position:absolute;inset:12% 13%;border-radius:50%;border:10px solid var(--rim);
@@ -180,7 +181,7 @@ h2{font:800 18px/1.2 var(--body)}
   box-shadow:inset 0 0 0 2px rgba(0,0,0,.28),inset 0 12px 30px rgba(0,0,0,.35),0 18px 40px rgba(0,0,0,.45);display:grid;place-items:center}
 .center{width:80%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
 .c-small{font:600 13px/1.35 var(--body);color:var(--soft)}
-.c-big{font:400 clamp(24px,7.6vw,30px)/1.05 var(--display);overflow-wrap:anywhere}
+.c-big{font:400 clamp(24px,calc(var(--vw)*7.6),30px)/1.05 var(--display);overflow-wrap:anywhere}
 .c-big.long{font-size:22px}
 .c-time{font:400 46px/1 var(--display);font-variant-numeric:tabular-nums}
 .c-time.low{color:var(--marigold)}
@@ -214,13 +215,13 @@ h2{font:800 18px/1.2 var(--body)}
 .picks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pick{display:flex;align-items:center;gap:8px;border:0;border-radius:12px;background:var(--field);padding:8px 10px 8px 8px;font-weight:700;text-align:left;min-width:0}
 .pick span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.layer .card{--w:min(62vw,236px,38vh)}
+.layer .card{--w:max(140px,min(calc(var(--vw)*62),236px,calc((var(--vh)*100 - 320px) / 1.4)))}
 .reveal:not(.shown) .card{animation:wobble .26s ease-in-out infinite}
 .foot{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:12px;min-height:118px}
 .verdict{font-weight:600;line-height:1.4}
 .guess{display:flex;gap:8px;width:100%}
 .guess .btn{width:auto;flex:none;padding:13px 18px}
-.count{font:400 clamp(72px,30vw,150px)/1 var(--display);color:var(--marigold);animation:pop .5s cubic-bezier(.2,.9,.3,1.2)}
+.count{font:400 clamp(72px,calc(var(--vw)*30),150px)/1 var(--display);color:var(--marigold);animation:pop .5s cubic-bezier(.2,.9,.3,1.2)}
 .scores{list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
 .scores li{display:grid;grid-template-columns:22px 1fr auto;gap:4px 8px;align-items:center}
 .scores .rank{color:var(--soft);font-weight:700;font-variant-numeric:tabular-nums}
@@ -238,11 +239,26 @@ h2{font:800 18px/1.2 var(--body)}
 
 /* ---------- akhir ronde ---------- */
 #confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:15}
-.end{display:flex;flex-direction:column;gap:18px;padding:14px 0 26px}
-.end .title{font-size:clamp(34px,10.4vw,46px)}
+.end{display:flex;flex-direction:column;gap:18px;padding:14px 0 0;flex:1}
+.end .dock{order:2;margin-top:auto}
+.end-dock .link{align-self:center}
+.split,.split>.col{display:contents}
+html.wide .app{max-width:980px}
+html.wide .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:48px;align-items:start;flex:1}
+html.wide .split>.col{display:flex;flex-direction:column;gap:0;min-width:0}
+html.wide .split>.col:last-child{position:sticky;top:0}
+html.wide .end.split{row-gap:0}
+html.wide .end .col:first-child{gap:18px}
+html.wide .end .col:last-child{padding-top:8px}
+html.wide .dock{position:static;margin:0;background:none;padding:20px 0 16px}
+html.wide .end.split{grid-template-rows:auto 1fr}
+html.wide .end .col:first-child{grid-column:1;grid-row:1}
+html.wide .end .col:last-child{grid-column:2;grid-row:1 / span 2}
+html.wide .end .dock{grid-column:1;grid-row:2;align-self:start}
+.end .title{font-size:clamp(34px,calc(var(--vw)*10.4),46px)}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;justify-items:center}
 .pair figure{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
-.pair .card{--w:min(38vw,142px)}
+.pair .card{--w:max(96px,min(calc(var(--vw)*38),142px,calc(var(--vh)*17)))}
 .pair figcaption{font:600 14px/1 var(--body);color:var(--soft)}
 .roster{list-style:none;padding:0}
 .roster li{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
@@ -257,7 +273,7 @@ h2{font:800 18px/1.2 var(--body)}
 .finals .nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .finals .pt{font-weight:800;font-variant-numeric:tabular-nums}
 
-#toast{position:fixed;left:50%;bottom:22px;z-index:40;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--paper);color:var(--ink);font:700 14px/1.35 var(--body);padding:11px 16px;border-radius:12px;max-width:min(92vw,400px);text-align:center;transition:opacity .2s,transform .2s}
+#toast{position:fixed;left:50%;bottom:22px;z-index:40;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--paper);color:var(--ink);font:700 14px/1.35 var(--body);padding:11px 16px;border-radius:12px;max-width:min(calc(var(--vw)*92),400px);text-align:center;transition:opacity .2s,transform .2s}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 
 @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -339,6 +355,21 @@ const I = {
   close:ICON('<path d="M6 6l12 12M18 6 6 18"/>')
 };
 const EYE = '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 20C12 6 23 2 32 2s20 4 30 18C52 34 41 38 32 38S12 34 2 20Z" fill="currentColor"/><circle class="iris" cx="32" cy="20" r="11"/><circle cx="36" cy="16" r="3.4" fill="currentColor"/></svg>';
+
+/* ================= ukuran layar ================= */
+/* Desain dasar selebar HP. Di layar besar (iPad) seluruh tampilan diperbesar
+   sampai pas lebar atau tinggi layar, mana yang lebih dulu penuh. */
+function fit(){
+  const W = innerWidth, H = innerHeight, r = document.documentElement;
+  const z = Math.min(2, Math.max(1, Math.min(W/440, H/760)));
+  r.style.zoom = z===1 ? "" : String(z);
+  r.style.setProperty("--vw", (W/z/100)+"px");
+  r.style.setProperty("--vh", (H/z/100)+"px");
+  r.classList.toggle("wide", W/z >= 820 && W > H*1.15);
+}
+fit();
+addEventListener("resize", fit);
+addEventListener("orientationchange", ()=>setTimeout(fit,120));
 
 /* ================= state ================= */
 const LS = {
@@ -472,6 +503,7 @@ function vSetup(){
     .map(([v,l])=>`<button class="choice" data-act="timer" data-v="${v}" aria-pressed="${cfg.timer===v}">${l}</button>`).join("");
   const whiteBlocked = !cfg.white && infil+1>mx;
   return bar({fan:true}) + `
+  <div class="split"><div class="col">
   <header class="hero">
     <h1 class="title">Siapa <span class="nb">Mata-matanya?</span></h1>
     <p class="lede">Semua dapat kata yang sama. Kecuali satu orang.</p>
@@ -485,6 +517,7 @@ function vSetup(){
     <div class="names">${names}</div>
   </section>
 
+  </div><div class="col">
   <section class="sec">
     <div class="row"><div><h2>Mata-mata</h2><p class="note">Dapat kata yang mirip, dan tidak tahu dirinya mata-mata.</p></div>
       <div class="stepper"><button data-act="uMinus" aria-label="Kurangi mata-mata" ${cfg.und<=1?"disabled":""}>−</button><output>${cfg.und}</output><button data-act="uPlus" aria-label="Tambah mata-mata" ${infil+1>mx?"disabled":""}>+</button></div>
@@ -509,7 +542,8 @@ function vSetup(){
   <div class="dock">
     ${ui.err?`<p class="err" role="alert">${esc(ui.err)}</p>`:`<p class="sum">${cfg.n} pemain: ${civ} warga, ${cfg.und} mata-mata${cfg.white?", 1 Mr. White":""}</p>`}
     <button class="btn" data-act="start">Bagikan kartu</button>
-  </div>`;
+  </div>
+  </div></div>`;
 }
 
 function dealLabel(){
@@ -587,14 +621,17 @@ function vEnd(){
             : `${white?white.name:"Mr. White"} menebak kata warga dengan benar.`;
   const bonusNote = w!=="white" && w!=="batal" && G.bonus && Object.keys(G.bonus).length ? ` ${Object.keys(G.bonus).join(", ")} dapat 4 poin dari tebakan benar.` : "";
   return `<canvas id="confetti" aria-hidden="true"></canvas>` + bar({brand:true}) + `
-  <main class="end">
+  <main class="end split">
+    <div class="col">
     <header class="stack" style="gap:8px"><h1 class="title">${head}</h1><p class="lede">${esc(sub+bonusNote)}</p></header>
     <div class="pair">
       <figure>${cardHTML({face:{kind:"word",cap:"Warga",word:G.civ}, open:true, mini:true})}<figcaption>Kata warga</figcaption></figure>
       <figure>${cardHTML({face:{kind:"word",cap:"Mata-mata",word:G.und,tone:"mata"}, open:true, mini:true})}<figcaption>Kata mata-mata</figcaption></figure>
     </div>
+    </div><div class="col">
     <ul class="roster">${G.players.map((p,i)=>`<li>${chip(p.name,i)}<span class="nm">${esc(p.name)}${p.left?"":`<small>Total ${scores[p.name]||0}</small>`}</span>${p.left?`<span class="tag left">Keluar</span><span class="pts zero">–</span>`:`<span class="tag ${p.role}">${ROLE[p.role]}</span><span class="pts ${G.award[p.name]?"":"zero"}">${G.award[p.name]?"+"+G.award[p.name]:"0"}</span>`}</li>`).join("")}</ul>
-    <div class="stack">
+    </div>
+    <div class="dock end-dock">
       <button class="btn" data-act="again">Main lagi</button>
       <button class="btn quiet" data-act="final">Selesai main, lihat total poin</button>
       <button class="link" data-act="setup">Ubah pemain atau aturan</button>
